@@ -1,11 +1,13 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
-
-export type QuizResult = { top: string; tally: Record<string, number> };
+import { quizQuestions } from "../data/quiz";
+import { scoreQuiz } from "./scoring/recommendations";
+import type { QuizResult } from "../types";
 
 type AttiaState = {
   result: QuizResult | null;
   saved: string[];
-  finishQuiz: (answerKeys: string[]) => void;
+  /** answers: map of quiz question id -> chosen option id */
+  finishQuiz: (answers: Record<string, string>) => QuizResult | null;
   toggleSave: (id: string) => void;
   reset: () => void;
 };
@@ -16,13 +18,11 @@ export function AttiaProvider({ children }: { children: ReactNode }) {
   const [result, setResult] = useState<QuizResult | null>(null);
   const [saved, setSaved] = useState<string[]>([]);
 
-  const finishQuiz = (answerKeys: string[]) => {
-    const tally: Record<string, number> = {};
-    answerKeys.forEach((k) => {
-      tally[k] = (tally[k] || 0) + 1;
-    });
-    const top = Object.keys(tally).sort((a, b) => tally[b] - tally[a])[0];
-    setResult({ top, tally });
+  // Compute the result with the real scoring engine (scoreQuiz), not a tally.
+  const finishQuiz = (answers: Record<string, string>) => {
+    const next = scoreQuiz(quizQuestions, answers);
+    setResult(next);
+    return next;
   };
 
   const toggleSave = (id: string) =>

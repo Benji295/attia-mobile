@@ -1,20 +1,70 @@
 import { View, Text, Pressable } from "react-native";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
-import { ACTIVITIES } from "../../lib/activities";
+import { useMemo, useState } from "react";
+import { activities } from "../../data/activities";
+import { rankActivities, getPersonalityProfile } from "../../lib/scoring/recommendations";
+import { personalityIds } from "../../types";
 import { useAttia } from "../../lib/store";
 
+const CITY_ID = "washington-dc";
+
+// UI-only mapping from activity category to an Ionicons glyph. Pure strings —
+// no styling decisions baked into the data layer.
+const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
+  "Water Activities": "water-outline",
+  "Wine Bars": "wine-outline",
+  Art: "color-palette-outline",
+  Rooftops: "business-outline",
+  Dining: "restaurant-outline",
+  "Food Tours": "fast-food-outline",
+  "Outdoor Sports": "bicycle-outline",
+  "Shared Tables": "people-outline",
+  "City Guides": "map-outline",
+  Performance: "musical-notes-outline"
+};
+
 export default function Discover() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { saved, toggleSave } = useAttia();
+  const { result, saved, toggleSave } = useAttia();
   const [ci, setCi] = useState(0);
-  const activity = ACTIVITIES[ci];
+
+  const ranked = useMemo(
+    () => (result ? rankActivities(activities, CITY_ID, result.scores, result) : []),
+    [result]
+  );
+
+  if (!result) {
+    return (
+      <View className="flex-1 bg-white px-5 items-center justify-center" style={{ paddingTop: insets.top + 8 }}>
+        <Ionicons name="compass-outline" size={34} color="#A3A3A3" />
+        <Text className="text-base text-neutral-500 mt-2 text-center">Take the quiz to unlock your matches.</Text>
+        <Pressable
+          onPress={() => router.push("/quiz")}
+          className="mt-4 bg-neutral-900 rounded-2xl px-6 py-3 active:opacity-80"
+        >
+          <Text className="text-white text-sm font-medium">Take the quiz</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  const ranItem = ranked[ci];
 
   function advance(save: boolean) {
-    if (save && activity) toggleSave(activity.id);
+    if (save && ranItem) toggleSave(ranItem.activity.id);
     setCi(ci + 1);
   }
+
+  // Accent from the activity's strongest archetype (placeholder colors pending OAT-2).
+  const accentFor = (a: (typeof activities)[number]) => {
+    const topId = personalityIds.reduce((best, id) =>
+      a.personalityScores[id] > a.personalityScores[best] ? id : best
+    );
+    return getPersonalityProfile(topId).accent;
+  };
 
   return (
     <View className="flex-1 bg-white px-5" style={{ paddingTop: insets.top + 8 }}>
@@ -27,20 +77,30 @@ export default function Discover() {
         <Text className="text-sm text-neutral-500">Washington DC</Text>
       </View>
 
-      {activity ? (
+      {ranItem ? (
         <>
           <View className="flex-1 border border-neutral-200 rounded-2xl overflow-hidden">
             <View className="flex-1 bg-neutral-100 items-center justify-center">
-              <Ionicons name={activity.icon as any} size={56} color={activity.accent} />
+              <Ionicons
+                name={CATEGORY_ICON[ranItem.activity.category] ?? "sparkles-outline"}
+                size={56}
+                color={accentFor(ranItem.activity)}
+              />
               <View className="absolute top-3 right-3 bg-white border border-neutral-200 rounded-lg px-2 py-1">
-                <Text className="text-sm font-medium" style={{ color: activity.accent }}>
-                  {activity.match}% match
+                <Text className="text-sm font-medium" style={{ color: accentFor(ranItem.activity) }}>
+                  {ranItem.match}% match
                 </Text>
               </View>
             </View>
             <View className="px-4 py-4">
-              <Text className="text-lg font-medium text-neutral-900">{activity.title}</Text>
-              <Text className="text-xs text-neutral-400 mt-1">{activity.tags}</Text>
+              <Text className="text-lg font-medium text-neutral-900">{ranItem.activity.title}</Text>
+              <Text className="text-xs text-neutral-400 mt-1">
+                {ranItem.activity.neighborhood} · {ranItem.activity.category} · {ranItem.activity.priceLevel}
+              </Text>
+              <Text className="text-sm text-neutral-600 mt-3 leading-5">{ranItem.explanation}</Text>
+              {ranItem.traitLabels.length > 0 && (
+                <Text className="text-xs text-neutral-400 mt-2">{ranItem.traitLabels.join(" · ")}</Text>
+              )}
             </View>
           </View>
 
@@ -57,7 +117,11 @@ export default function Discover() {
               className="border border-neutral-200 rounded-full items-center justify-center active:scale-95"
               style={{ width: 62, height: 62 }}
             >
-              <Ionicons name="heart" size={26} color="#171717" />
+              <Ionicons
+                name={saved.includes(ranItem.activity.id) ? "heart" : "heart-outline"}
+                size={26}
+                color="#171717"
+              />
             </Pressable>
           </View>
         </>

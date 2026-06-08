@@ -1,14 +1,14 @@
 import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { PERSONALITIES } from "../../lib/personalities";
+import { getPersonalityProfile } from "../../lib/scoring/recommendations";
 import { useAttia } from "../../lib/store";
 
 export default function Profile() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { result, reset } = useAttia();
-  const top = result ? PERSONALITIES[result.top] : null;
+  const top = result ? getPersonalityProfile(result.dominant) : null;
 
   return (
     <View className="flex-1 bg-white px-5" style={{ paddingTop: insets.top + 8 }}>
@@ -16,8 +16,19 @@ export default function Profile() {
       {top ? (
         <View className="border border-neutral-200 rounded-2xl px-4 py-5">
           <Text className="text-sm text-neutral-400">Your archetype</Text>
-          <Text className="text-2xl font-medium mt-1" style={{ color: top.accent }}>{top.name}</Text>
-          <Text className="text-sm text-neutral-500 mt-2 leading-6">{top.blurb}</Text>
+          <Text className="text-2xl font-medium mt-1" style={{ color: top.accent }}>
+            {top.name}
+          </Text>
+          <Text className="text-sm text-neutral-500 mt-2 leading-6">{top.summary}</Text>
+          <View className="flex-row flex-wrap mt-4" style={{ gap: 8 }}>
+            {top.traits.map((t) => (
+              <View key={t} className="rounded-full px-3 py-1" style={{ backgroundColor: top.accentSoft }}>
+                <Text className="text-xs font-medium" style={{ color: top.accent }}>
+                  {t}
+                </Text>
+              </View>
+            ))}
+          </View>
         </View>
       ) : (
         <Text className="text-sm text-neutral-400">Take the quiz to find your archetype.</Text>

@@ -1,16 +1,19 @@
 {
   "expo": {
-    "name": "attia-mobile",
-    "slug": "attia-mobile",
+    "name": "ATTIA",
+    "slug": "attia",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "attiamobile",
+    "scheme": "attia",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.attia.app",
+      "supportsTablet": false
     },
     "android": {
+      "package": "com.attia.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

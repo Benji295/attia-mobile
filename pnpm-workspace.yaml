@@ -1,2 +1,6 @@
+# Expo + React Native require a flat node_modules. pnpm v11 reads this from
+# pnpm-workspace.yaml (the legacy .npmrc `node-linker=hoisted` is ignored in v11).
+nodeLinker: hoisted
+
 allowBuilds:
-  msgpackr-extract: set this to true or false
+  msgpackr-extract: false

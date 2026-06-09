@@ -1,10 +1,14 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, Dimensions, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useEffect } from "react";
+import ConfettiCannon from "react-native-confetti-cannon";
 import { getPersonalityProfile } from "../lib/scoring/recommendations";
 import { personalityIds } from "../types";
 import { useAttia } from "../lib/store";
+
+const SCREEN_W = Dimensions.get("window").width;
+const BRAND = "#FB923C"; // sunset warmth, from the locked palette
 
 export default function Results() {
   const router = useRouter();
@@ -17,6 +21,13 @@ export default function Results() {
   if (!result) return null;
 
   const top = getPersonalityProfile(result.dominant);
+  // Confetti from the locked palette: the archetype's accent + its secondaries
+  // + brand warmth — never a random rainbow.
+  const confettiColors = [
+    top.accent,
+    ...result.secondary.map((id) => getPersonalityProfile(id).accent),
+    BRAND
+  ];
   const maxScore = result.scores[result.dominant] || 1;
   const bars = [...personalityIds]
     .sort((a, b) => result.scores[b] - result.scores[a])
@@ -73,6 +84,20 @@ export default function Results() {
       >
         <Text className="text-sm text-neutral-400 text-center">Retake the quiz</Text>
       </Pressable>
+
+      {/* One-shot celebratory burst on reveal. pointerEvents="none" so it never
+          blocks the reveal content or the CTA; fadeOut lets it settle. */}
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        <ConfettiCannon
+          count={80}
+          origin={{ x: SCREEN_W / 2, y: -20 }}
+          colors={confettiColors}
+          fadeOut
+          autoStart
+          explosionSpeed={350}
+          fallSpeed={2600}
+        />
+      </View>
     </View>
   );
 }

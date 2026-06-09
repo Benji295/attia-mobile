@@ -43,6 +43,10 @@ export default function Profile() {
       >
         <Text className="text-sm text-neutral-700 text-center">Retake the quiz</Text>
       </Pressable>
+
+      <Pressable onPress={() => router.push("/how-it-works")} className="mt-4 active:opacity-60" hitSlop={8}>
+        <Text className="text-sm text-neutral-400 text-center">How ATTIA works</Text>
+      </Pressable>
     </View>
   );
 }

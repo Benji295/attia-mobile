@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
+import Animated, { FadeInLeft, FadeInRight } from "react-native-reanimated";
 import { quizQuestions } from "../data/quiz";
 import { useAttia } from "../lib/store";
 
@@ -12,6 +13,8 @@ export default function Quiz() {
   const { finishQuiz } = useAttia();
   const [qi, setQi] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  // Drives the between-question transition direction (forward vs back).
+  const [direction, setDirection] = useState<"forward" | "back">("forward");
 
   const question = quizQuestions[qi];
   const progress = (qi + 1) / quizQuestions.length;
@@ -20,6 +23,7 @@ export default function Quiz() {
     const next = { ...answers, [question.id]: optionId };
     if (qi < quizQuestions.length - 1) {
       setAnswers(next);
+      setDirection("forward");
       setQi(qi + 1);
     } else {
       finishQuiz(next);
@@ -29,6 +33,7 @@ export default function Quiz() {
 
   function back() {
     if (qi > 0) {
+      setDirection("back");
       setQi(qi - 1);
     } else {
       router.back();
@@ -49,18 +54,24 @@ export default function Quiz() {
         </Text>
       </View>
 
-      <Text className="text-2xl font-medium text-neutral-900 leading-8">{question.prompt}</Text>
-      <Text className="text-sm text-neutral-400 mt-2 mb-6">{question.helper}</Text>
+      {/* Keyed on qi so each question fades/slides in — direction follows nav. */}
+      <Animated.View
+        key={qi}
+        entering={(direction === "back" ? FadeInLeft : FadeInRight).duration(220)}
+      >
+        <Text className="text-2xl font-medium text-neutral-900 leading-8">{question.prompt}</Text>
+        <Text className="text-sm text-neutral-400 mt-2 mb-6">{question.helper}</Text>
 
-      {question.options.map((o) => (
-        <Pressable
-          key={o.id}
-          onPress={() => pick(o.id)}
-          className="border border-neutral-200 rounded-2xl px-4 py-4 mb-3 active:bg-neutral-50"
-        >
-          <Text className="text-base text-neutral-800">{o.label}</Text>
-        </Pressable>
-      ))}
+        {question.options.map((o) => (
+          <Pressable
+            key={o.id}
+            onPress={() => pick(o.id)}
+            className="border border-neutral-200 rounded-2xl px-4 py-4 mb-3 active:bg-neutral-50"
+          >
+            <Text className="text-base text-neutral-800">{o.label}</Text>
+          </Pressable>
+        ))}
+      </Animated.View>
     </View>
   );
 }

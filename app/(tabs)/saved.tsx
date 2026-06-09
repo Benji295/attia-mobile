@@ -1,13 +1,22 @@
 import { View, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { activities } from "../../data/activities";
+import { useMemo } from "react";
+import { activities as seedActivities } from "../../data/activities";
 import { activityMatchPercentage } from "../../lib/scoring/recommendations";
+import type { Activity } from "../../types";
 import { useAttia } from "../../lib/store";
 
 export default function Saved() {
   const insets = useSafeAreaInsets();
-  const { saved, result } = useAttia();
-  const items = activities.filter((a) => saved.includes(a.id));
+  const { saved, result, activityCache } = useAttia();
+
+  // Resolve saved ids from the live cache, falling back to the static seed.
+  const items = useMemo(() => {
+    const byId: Record<string, Activity> = {};
+    for (const a of seedActivities) byId[a.id] = a;
+    Object.assign(byId, activityCache);
+    return saved.map((id) => byId[id]).filter(Boolean) as Activity[];
+  }, [saved, activityCache]);
 
   return (
     <View className="flex-1 bg-white px-5" style={{ paddingTop: insets.top + 8 }}>

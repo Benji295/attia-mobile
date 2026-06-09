@@ -16,8 +16,8 @@ import Animated, {
 } from "react-native-reanimated";
 import { rankActivities, getPersonalityProfile } from "../../lib/scoring/recommendations";
 import { getActivities } from "../../lib/places/fetchActivities";
-import { ATTIA_API_BASE } from "../../lib/config";
-import { personalityIds, type Activity } from "../../types";
+import { photoUri, accentFor } from "../../lib/activities/display";
+import { type Activity } from "../../types";
 import { useAttia } from "../../lib/store";
 
 const CITY_ID = "washington-dc";
@@ -39,21 +39,6 @@ const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   "City Guides": "map-outline",
   Performance: "musical-notes-outline"
 };
-
-// The API returns a relative image path (e.g. "/api/places/photo?..."); prefix
-// it with the API origin so it loads. Absolute URLs are passed through.
-function photoUri(a: Activity): string | null {
-  if (!a.image) return null;
-  return a.image.startsWith("http") ? a.image : `${ATTIA_API_BASE}${a.image}`;
-}
-
-// Accent from the activity's strongest archetype.
-function accentFor(a: Activity) {
-  const topId = personalityIds.reduce((best, id) =>
-    a.personalityScores[id] > a.personalityScores[best] ? id : best
-  );
-  return getPersonalityProfile(topId).accent;
-}
 
 export default function Discover() {
   const router = useRouter();

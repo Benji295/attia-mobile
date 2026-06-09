@@ -6,28 +6,14 @@ import { Image } from "expo-image";
 import { useEffect, useMemo, useState } from "react";
 import { rankActivities, getPersonalityProfile } from "../../lib/scoring/recommendations";
 import { getActivities } from "../../lib/places/fetchActivities";
-import { ATTIA_API_BASE } from "../../lib/config";
-import { personalityIds, type Activity } from "../../types";
+import { photoUri, accentFor } from "../../lib/activities/display";
+import { type Activity } from "../../types";
 import { useAttia } from "../../lib/store";
 
 const CITY_ID = "washington-dc";
 const CITY_LABEL = "Washington DC";
 const INK = "#171717";
 const BRAND = "#FB923C"; // sunset warmth, from the locked palette
-
-// Same relative-path prefixing as Discover: the API returns "/api/places/photo?…".
-function photoUri(a: Activity): string | null {
-  if (!a.image) return null;
-  return a.image.startsWith("http") ? a.image : `${ATTIA_API_BASE}${a.image}`;
-}
-
-// Accent from the activity's strongest archetype — same pattern as Discover.
-function accentFor(a: Activity) {
-  const topId = personalityIds.reduce((best, id) =>
-    a.personalityScores[id] > a.personalityScores[best] ? id : best
-  );
-  return getPersonalityProfile(topId).accent;
-}
 
 export default function Home() {
   const router = useRouter();

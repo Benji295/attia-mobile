@@ -1,14 +1,28 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, Dimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  Extrapolation,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming
+} from "react-native-reanimated";
 import { activities } from "../../data/activities";
 import { rankActivities, getPersonalityProfile } from "../../lib/scoring/recommendations";
 import { personalityIds } from "../../types";
 import { useAttia } from "../../lib/store";
 
 const CITY_ID = "washington-dc";
+const SCREEN_W = Dimensions.get("window").width;
+const SWIPE_THRESHOLD = SCREEN_W * 0.3; // distance past which a release commits
+const OFF_SCREEN = SCREEN_W * 1.5; // where a committed card flies to
+const SAVE_CUE_COLOR = getPersonalityProfile("explorer").accent; // Explorer green, from the locked palette
 
 // UI-only mapping from activity category to an Ionicons glyph. Pure strings —
 // no styling decisions baked into the data layer.
@@ -30,11 +44,32 @@ export default function Discover() {
   const insets = useSafeAreaInsets();
   const { result, saved, toggleSave } = useAttia();
   const [ci, setCi] = useState(0);
+  const translateX = useSharedValue(0);
 
   const ranked = useMemo(
     () => (result ? rankActivities(activities, CITY_ID, result.scores, result) : []),
     [result]
   );
+
+  // Each new card mounts centered (step 3).
+  useEffect(() => {
+    translateX.value = 0;
+  }, [ci, translateX]);
+
+  const cardStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { rotateZ: `${interpolate(translateX.value, [-SCREEN_W, 0, SCREEN_W], [-8, 0, 8])}deg` }
+    ]
+  }));
+
+  const saveCueStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(translateX.value, [0, SWIPE_THRESHOLD], [0, 1], Extrapolation.CLAMP)
+  }));
+
+  const skipCueStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(translateX.value, [-SWIPE_THRESHOLD, 0], [1, 0], Extrapolation.CLAMP)
+  }));
 
   if (!result) {
     return (
@@ -55,16 +90,43 @@ export default function Discover() {
 
   function advance(save: boolean) {
     if (save && ranItem) toggleSave(ranItem.activity.id);
-    setCi(ci + 1);
+    setCi((c) => c + 1);
   }
 
-  // Accent from the activity's strongest archetype (placeholder colors pending OAT-2).
+  // Single shared path for both tap and swipe: fling the card off-screen, then
+  // advance once the animation lands and snap back to center for the next card.
+  function dismiss(save: boolean) {
+    translateX.value = withTiming(save ? OFF_SCREEN : -OFF_SCREEN, { duration: 220 }, (finished) => {
+      if (finished) runOnJS(finishDismiss)(save);
+    });
+  }
+
+  function finishDismiss(save: boolean) {
+    translateX.value = 0;
+    advance(save);
+  }
+
+  // Accent from the activity's strongest archetype.
   const accentFor = (a: (typeof activities)[number]) => {
     const topId = personalityIds.reduce((best, id) =>
       a.personalityScores[id] > a.personalityScores[best] ? id : best
     );
     return getPersonalityProfile(topId).accent;
   };
+
+  const pan = Gesture.Pan()
+    .onUpdate((e) => {
+      translateX.value = e.translationX;
+    })
+    .onEnd(() => {
+      if (translateX.value > SWIPE_THRESHOLD) {
+        runOnJS(dismiss)(true);
+      } else if (translateX.value < -SWIPE_THRESHOLD) {
+        runOnJS(dismiss)(false);
+      } else {
+        translateX.value = withSpring(0);
+      }
+    });
 
   return (
     <View className="flex-1 bg-white px-5" style={{ paddingTop: insets.top + 8 }}>
@@ -79,41 +141,53 @@ export default function Discover() {
 
       {ranItem ? (
         <>
-          <View className="flex-1 border border-neutral-200 rounded-2xl overflow-hidden">
-            <View className="flex-1 bg-neutral-100 items-center justify-center">
-              <Ionicons
-                name={CATEGORY_ICON[ranItem.activity.category] ?? "sparkles-outline"}
-                size={56}
-                color={accentFor(ranItem.activity)}
-              />
-              <View className="absolute top-3 right-3 bg-white border border-neutral-200 rounded-lg px-2 py-1">
-                <Text className="text-sm font-medium" style={{ color: accentFor(ranItem.activity) }}>
-                  {ranItem.match}% match
-                </Text>
+          <GestureDetector gesture={pan}>
+            <Animated.View style={[{ flex: 1 }, cardStyle]}>
+              <View className="flex-1 border border-neutral-200 rounded-2xl overflow-hidden">
+                <View className="flex-1 bg-neutral-100 items-center justify-center">
+                  <Ionicons
+                    name={CATEGORY_ICON[ranItem.activity.category] ?? "sparkles-outline"}
+                    size={56}
+                    color={accentFor(ranItem.activity)}
+                  />
+                  <View className="absolute top-3 right-3 bg-white border border-neutral-200 rounded-lg px-2 py-1">
+                    <Text className="text-sm font-medium" style={{ color: accentFor(ranItem.activity) }}>
+                      {ranItem.match}% match
+                    </Text>
+                  </View>
+
+                  {/* Directional drag cues — only the relevant one fades in. */}
+                  <Animated.View style={[{ position: "absolute", top: 12, left: 12 }, saveCueStyle]}>
+                    <Ionicons name="checkmark-circle" size={42} color={SAVE_CUE_COLOR} />
+                  </Animated.View>
+                  <Animated.View style={[{ position: "absolute", top: 12, left: 12 }, skipCueStyle]}>
+                    <Ionicons name="close-circle" size={42} color="#A3A3A3" />
+                  </Animated.View>
+                </View>
+                <View className="px-4 py-4">
+                  <Text className="text-lg font-medium text-neutral-900">{ranItem.activity.title}</Text>
+                  <Text className="text-xs text-neutral-400 mt-1">
+                    {ranItem.activity.neighborhood} · {ranItem.activity.category} · {ranItem.activity.priceLevel}
+                  </Text>
+                  <Text className="text-sm text-neutral-600 mt-3 leading-5">{ranItem.explanation}</Text>
+                  {ranItem.traitLabels.length > 0 && (
+                    <Text className="text-xs text-neutral-400 mt-2">{ranItem.traitLabels.join(" · ")}</Text>
+                  )}
+                </View>
               </View>
-            </View>
-            <View className="px-4 py-4">
-              <Text className="text-lg font-medium text-neutral-900">{ranItem.activity.title}</Text>
-              <Text className="text-xs text-neutral-400 mt-1">
-                {ranItem.activity.neighborhood} · {ranItem.activity.category} · {ranItem.activity.priceLevel}
-              </Text>
-              <Text className="text-sm text-neutral-600 mt-3 leading-5">{ranItem.explanation}</Text>
-              {ranItem.traitLabels.length > 0 && (
-                <Text className="text-xs text-neutral-400 mt-2">{ranItem.traitLabels.join(" · ")}</Text>
-              )}
-            </View>
-          </View>
+            </Animated.View>
+          </GestureDetector>
 
           <View className="flex-row justify-center items-center py-4" style={{ gap: 34 }}>
             <Pressable
-              onPress={() => advance(false)}
+              onPress={() => dismiss(false)}
               className="border border-neutral-200 rounded-full items-center justify-center active:scale-95"
               style={{ width: 62, height: 62 }}
             >
               <Ionicons name="close" size={28} color="#737373" />
             </Pressable>
             <Pressable
-              onPress={() => advance(true)}
+              onPress={() => dismiss(true)}
               className="border border-neutral-200 rounded-full items-center justify-center active:scale-95"
               style={{ width: 62, height: 62 }}
             >

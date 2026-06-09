@@ -39,10 +39,20 @@ Personality-based travel recommendation app. A quiz sorts users into one of **8 
 
 ## Design system (do not drift from this)
 - **Font:** Bricolage Grotesque
-- **Palette "Sunset Adventure":** primary orange `#FB923C`, twilight purple `#7C3AED`, ocean blue `#06B6D4`
-- Each archetype has its own accent color (see specs)
+- **Palette — LOCKED (OAT-2).** Single source of truth: core tokens in `tailwind.config.js` (`theme.extend.colors`), per-archetype accents in `data/personalities.ts`. Never hardcode these per-screen.
+
+  **Core (neutral skeleton):**
+  | token | hex | use |
+  |-------|-----|-----|
+  | `ink` | `#171717` | primary text + CTAs (≈ `neutral-900`) |
+  | `surface` | `#FFFFFF` | cards, backgrounds |
+  | `mist` | `#E5E5E5` | borders, dividers (≈ `neutral-200`) |
+  | `brand` | `#FB923C` | sunset warmth — splash, logo, accents; **NOT** the default CTA |
+
+  **Personality accents (by id):** socialite `#EC4899` · explorer `#10B981` · connoisseur `#8B5CF6` · connector `#3B82F6` · culture-vulture `#F97316` · epicurean `#F59E0B` · adrenaline-junkie `#EF4444` · savvy-traveler `#06B6D4`. Each also carries an `accentSoft` (~100-level tint) for chip/wash backgrounds.
+- CTAs stay **ink** (`neutral-900`); brand orange is for warmth, not the default button color.
+- Keep using Tailwind's `neutral-*` scale where it maps (ink ≈ `neutral-900`, mist ≈ `neutral-200`); the named tokens make `ink`/`brand` explicit.
 - Tone is **dark and confident** — NOT pastel. The old web code was pastel; ignore it as a style reference.
-- Define colors/fonts as central tokens (Tailwind/NativeWind config), never hardcode per-screen.
 
 ## Mobile-first rules
 - This is a phone app: thumb-reachable bottom tab nav (Discover / Saved / Itinerary / Profile)

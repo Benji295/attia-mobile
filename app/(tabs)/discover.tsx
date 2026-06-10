@@ -3,20 +3,27 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Extrapolation,
+  FadeOut,
+  FadeInUp,
+  ZoomIn,
   interpolate,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
+  withSequence,
   withSpring,
   withTiming
 } from "react-native-reanimated";
+import ConfettiCannon from "react-native-confetti-cannon";
 import { rankActivities, getPersonalityProfile } from "../../lib/scoring/recommendations";
 import { getActivities } from "../../lib/places/fetchActivities";
 import { photoUri, accentFor } from "../../lib/activities/display";
+import { computeXp, levelInfo, FULL_DAY_MIN_STOPS } from "../../lib/gamification";
+import { hapticLight, hapticSuccess, isHighMatch, prefersReducedMotion } from "../../lib/feedback";
 import { type Activity } from "../../types";
 import { useAttia } from "../../lib/store";
 
@@ -25,6 +32,13 @@ const SCREEN_W = Dimensions.get("window").width;
 const SWIPE_THRESHOLD = SCREEN_W * 0.3; // distance past which a release commits
 const OFF_SCREEN = SCREEN_W * 1.5; // where a committed card flies to
 const SAVE_CUE_COLOR = getPersonalityProfile("explorer").accent; // Explorer green, from the locked palette
+// Palette-honest confetti colors for the Tier-2 high-match burst.
+const CELEBRATE_COLORS = [
+  getPersonalityProfile("explorer").accent,
+  getPersonalityProfile("socialite").accent,
+  getPersonalityProfile("connector").accent,
+  "#FB923C"
+];
 
 // UI-only mapping from activity category to an Ionicons glyph (photo fallback).
 const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -101,6 +115,36 @@ export default function Discover() {
     opacity: interpolate(translateX.value, [-SWIPE_THRESHOLD, 0], [1, 0], Extrapolation.CLAMP)
   }));
 
+  // ---- Celebration feedback state (OAT-15) ----
+  // Each trigger carries a monotonically increasing `seq` so re-firing with the
+  // same payload still replays the entering animation. One of each at a time —
+  // a new save supersedes the previous, so saves never pile into a chaos of
+  // overlapping effects.
+  const seq = useRef(0);
+  const [xpChip, setXpChip] = useState(0); // seq, or 0 = hidden
+  const [flash, setFlash] = useState<{ seq: number; pct: number } | null>(null); // Tier 2
+  const [toast, setToast] = useState<{ seq: number; msg: string } | null>(null); // Tier 4
+  const [burst, setBurst] = useState(0); // seq, or 0 = none
+  const heartScale = useSharedValue(1);
+
+  const heartStyle = useAnimatedStyle(() => ({ transform: [{ scale: heartScale.value }] }));
+
+  useEffect(() => {
+    if (xpChip === 0) return;
+    const t = setTimeout(() => setXpChip(0), 1000);
+    return () => clearTimeout(t);
+  }, [xpChip]);
+  useEffect(() => {
+    if (!flash) return;
+    const t = setTimeout(() => setFlash(null), 1200);
+    return () => clearTimeout(t);
+  }, [flash]);
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 1900);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   // Header reused across content states.
   const Header = (
     <>
@@ -165,8 +209,53 @@ export default function Discover() {
   const ranItem = ranked[ci];
 
   function advance(save: boolean) {
-    if (save && ranItem) toggleSave(ranItem.activity.id);
+    if (save && ranItem) {
+      const id = ranItem.activity.id;
+      const wasSaved = saved.includes(id);
+      toggleSave(id);
+      // Celebrate only an actual ADD (not an un-save of a re-encountered card).
+      if (!wasSaved) celebrateSave(ranItem.match, saved.length);
+    }
     setCi((c) => c + 1);
+  }
+
+  // Tiered feedback for a save. Exactly one haptic per save (the strongest that
+  // applies); Tier 1 visuals always; Tier 2 burst/flash on a relative high match;
+  // Tier 4 toast on a level-up or badge unlock — sequenced AFTER a Tier 2 burst
+  // so the two never collide. `beforeCount` = saved length before this add.
+  function celebrateSave(matchValue: number, beforeCount: number) {
+    const n = ++seq.current;
+
+    // Tier 1 — always: +XP chip + heart pulse.
+    setXpChip(n);
+    heartScale.value = withSequence(withTiming(1.3, { duration: 120 }), withSpring(1));
+
+    // Tier 2 — relative high match (top 15% of the user's own match range).
+    const high = isHighMatch(matchValue, ranked.map((r) => r.match));
+
+    // Tier 4 — level-up / badge unlock, computed from the gamification engine.
+    const after = beforeCount + 1;
+    const leveledUp = levelInfo(computeXp(true, after)).level > levelInfo(computeXp(true, beforeCount)).level;
+    // Save-driven badges (Collector + Day maker) both unlock at the full-day
+    // threshold; surface one if newly crossed.
+    const newBadge =
+      beforeCount < FULL_DAY_MIN_STOPS && after >= FULL_DAY_MIN_STOPS ? "Collector" : null;
+    const newLevel = levelInfo(computeXp(true, after)).level;
+
+    const big = high || leveledUp || !!newBadge;
+    if (big) hapticSuccess();
+    else hapticLight();
+
+    if (high) {
+      setFlash({ seq: n, pct: matchValue });
+      if (!prefersReducedMotion()) setBurst(n);
+    }
+
+    if (leveledUp || newBadge) {
+      const msg = leveledUp ? `Level ${newLevel}!` : `Badge unlocked: ${newBadge}`;
+      if (high) setTimeout(() => setToast({ seq: n, msg }), 700); // sequence after the burst
+      else setToast({ seq: n, msg });
+    }
   }
 
   // Single shared path for both tap and swipe: fling the card off-screen, then
@@ -261,11 +350,13 @@ export default function Discover() {
               className="border border-neutral-200 rounded-full items-center justify-center active:scale-95"
               style={{ width: 62, height: 62 }}
             >
-              <Ionicons
-                name={saved.includes(ranItem.activity.id) ? "heart" : "heart-outline"}
-                size={26}
-                color="#171717"
-              />
+              <Animated.View style={heartStyle}>
+                <Ionicons
+                  name={saved.includes(ranItem.activity.id) ? "heart" : "heart-outline"}
+                  size={26}
+                  color="#171717"
+                />
+              </Animated.View>
             </Pressable>
           </View>
         </>
@@ -276,6 +367,74 @@ export default function Discover() {
           <Pressable onPress={() => setCi(0)} className="mt-4">
             <Text className="text-sm text-neutral-400">Start over</Text>
           </Pressable>
+        </View>
+      )}
+
+      {/* Tier 1 — "+10 XP" chip floats up near the action buttons. */}
+      {xpChip > 0 && (
+        <Animated.View
+          key={`xp-${xpChip}`}
+          entering={FadeInUp.duration(260)}
+          exiting={FadeOut.duration(260)}
+          pointerEvents="none"
+          style={{ position: "absolute", left: 0, right: 0, bottom: 96, alignItems: "center" }}
+        >
+          <View
+            className="flex-row items-center bg-white border rounded-full px-3 py-1"
+            style={{ gap: 3, borderColor: SAVE_CUE_COLOR }}
+          >
+            <Ionicons name="add" size={14} color={SAVE_CUE_COLOR} />
+            <Text className="text-sm font-medium" style={{ color: SAVE_CUE_COLOR }}>
+              10 XP
+            </Text>
+          </View>
+        </Animated.View>
+      )}
+
+      {/* Tier 2 — "Perfect match!" flash over the card. */}
+      {flash && (
+        <Animated.View
+          key={`flash-${flash.seq}`}
+          entering={ZoomIn.duration(280)}
+          exiting={FadeOut.duration(300)}
+          pointerEvents="none"
+          style={{ position: "absolute", left: 0, right: 0, top: 230, alignItems: "center" }}
+        >
+          <View className="rounded-2xl px-4 py-2" style={{ backgroundColor: SAVE_CUE_COLOR }}>
+            <Text className="text-base font-medium text-white">Perfect match! {flash.pct}%</Text>
+          </View>
+        </Animated.View>
+      )}
+
+      {/* Tier 4 — level-up / badge toast (top). */}
+      {toast && (
+        <Animated.View
+          key={`toast-${toast.seq}`}
+          entering={FadeInUp.duration(260)}
+          exiting={FadeOut.duration(260)}
+          pointerEvents="none"
+          style={{ position: "absolute", left: 0, right: 0, top: insets.top + 56, alignItems: "center" }}
+        >
+          <View className="flex-row items-center bg-neutral-900 rounded-full px-4 py-2" style={{ gap: 6 }}>
+            <Ionicons name="trophy" size={16} color="#FB923C" />
+            <Text className="text-sm font-medium text-white">{toast.msg}</Text>
+          </View>
+        </Animated.View>
+      )}
+
+      {/* Tier 2 — particle burst around the card (skipped under Reduce Motion). */}
+      {burst > 0 && !prefersReducedMotion() && (
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          <ConfettiCannon
+            key={`burst-${burst}`}
+            count={35}
+            origin={{ x: SCREEN_W / 2, y: 240 }}
+            colors={CELEBRATE_COLORS}
+            fadeOut
+            autoStart
+            explosionSpeed={320}
+            fallSpeed={2400}
+          />
         </View>
       )}
     </View>

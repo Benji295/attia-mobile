@@ -69,7 +69,7 @@ export default function Results() {
       })}
 
       <Pressable
-        onPress={() => router.replace("/discover")}
+        onPress={() => router.replace("/home")}
         className="mt-8 w-full bg-neutral-900 rounded-2xl py-4 active:opacity-80"
       >
         <Text className="text-white text-center text-base font-medium">Discover your ATTIA</Text>

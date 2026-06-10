@@ -2,7 +2,7 @@ import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 import { useAttia } from "../lib/store";
 
@@ -13,15 +13,27 @@ export default function Welcome() {
   const insets = useSafeAreaInsets();
   const { hydrated, result } = useAttia();
 
-  // Returning users (persisted quiz result) skip straight to the Home tab.
-  // Wait for hydration before deciding so we never flash the welcome screen.
-  useEffect(() => {
-    if (hydrated && result) router.replace("/home");
-  }, [hydrated, result, router]);
+  // The launch decision runs EXACTLY ONCE, the first time hydration completes:
+  // a returning user (persisted result) jumps straight to Home. We must NOT
+  // react to `result` changing later — index stays mounted beneath the stack,
+  // so redirecting when the quiz sets `result` would yank the user off the
+  // reveal screen mid-confetti (the OAT-13 regression this fixes).
+  const [decided, setDecided] = useState(false);
+  const decidedRef = useRef(false);
 
-  // Hold a blank surface until we know whether to redirect (avoids a welcome
-  // flash for returning users, and a wrong-screen flash for new users).
-  if (!hydrated || result) {
+  useEffect(() => {
+    if (!hydrated || decidedRef.current) return;
+    decidedRef.current = true;
+    setDecided(true);
+    if (result) router.replace("/home");
+    // result intentionally read once here; not a dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, router]);
+
+  // Blank surface only while the launch decision is pending: until hydrated, or
+  // (returning user) during the one-shot redirect to Home. After the decision,
+  // index always renders the welcome screen — never a stuck blank.
+  if (!hydrated || (!decided && result)) {
     return <View className="flex-1 bg-white" />;
   }
 

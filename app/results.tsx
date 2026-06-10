@@ -2,9 +2,11 @@ import { View, Text, Pressable, Dimensions, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useEffect } from "react";
+import Animated, { ZoomIn } from "react-native-reanimated";
 import ConfettiCannon from "react-native-confetti-cannon";
 import { getPersonalityProfile } from "../lib/scoring/recommendations";
 import { personalityIds } from "../types";
+import { hapticSuccess, prefersReducedMotion } from "../lib/feedback";
 import { useAttia } from "../lib/store";
 
 const SCREEN_W = Dimensions.get("window").width;
@@ -18,6 +20,14 @@ export default function Results() {
   useEffect(() => {
     if (!result) router.replace("/");
   }, [result]);
+
+  // Tier 3: success haptic as the archetype lands (once, on reveal mount).
+  useEffect(() => {
+    if (result) hapticSuccess();
+    // fire once on mount of a valid reveal
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   if (!result) return null;
 
   const top = getPersonalityProfile(result.dominant);
@@ -41,9 +51,11 @@ export default function Results() {
       style={{ paddingTop: insets.top, paddingBottom: insets.bottom + 16 }}
     >
       <Text className="text-sm text-neutral-400 text-center">You are</Text>
-      <Text className="text-3xl font-medium text-center mt-1 mb-3" style={{ color: top.accent }}>
-        {top.name}
-      </Text>
+      <Animated.View entering={ZoomIn.duration(520).delay(120)}>
+        <Text className="text-3xl font-medium text-center mt-1 mb-3" style={{ color: top.accent }}>
+          {top.name}
+        </Text>
+      </Animated.View>
       <Text
         className="text-sm text-neutral-500 text-center leading-6 mb-8"
         style={{ maxWidth: 290, alignSelf: "center" }}
@@ -86,18 +98,21 @@ export default function Results() {
       </Pressable>
 
       {/* One-shot celebratory burst on reveal. pointerEvents="none" so it never
-          blocks the reveal content or the CTA; fadeOut lets it settle. */}
-      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-        <ConfettiCannon
-          count={80}
-          origin={{ x: SCREEN_W / 2, y: -20 }}
-          colors={confettiColors}
-          fadeOut
-          autoStart
-          explosionSpeed={350}
-          fallSpeed={2600}
-        />
-      </View>
+          blocks the reveal content or the CTA; fadeOut lets it settle. Skipped
+          under Reduce Motion (the haptic + name animation still play). */}
+      {!prefersReducedMotion() && (
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          <ConfettiCannon
+            count={80}
+            origin={{ x: SCREEN_W / 2, y: -20 }}
+            colors={confettiColors}
+            fadeOut
+            autoStart
+            explosionSpeed={350}
+            fallSpeed={2600}
+          />
+        </View>
+      )}
     </View>
   );
 }

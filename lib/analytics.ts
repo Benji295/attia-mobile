@@ -53,12 +53,18 @@ export function trackArchetypeRevealed(archetype: string): void {
   track("archetype_revealed", { archetype });
 }
 
-/** Core thesis signal — matchPercent + matchTier answer "do people save their good matches." */
+export function trackCitySelected(city: string): void {
+  track("city_selected", { city });
+}
+
+/** Core thesis signal — matchPercent + matchTier answer "do people save their good
+    matches." `city` lets us read match quality per city. */
 export function trackActivitySaved(p: {
   activityId: string;
   category: string;
   matchPercent: number;
   matchTier: MatchTier;
+  city: string;
 }): void {
   track("activity_saved", p);
 }

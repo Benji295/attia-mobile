@@ -5,10 +5,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMemo } from "react";
 import { activities as seedActivities } from "../../data/activities";
 import { activityMatchPercentage, getPersonalityProfile } from "../../lib/scoring/recommendations";
+import { cityLabel } from "../../lib/cities";
 import { personalityIds, type Activity } from "../../types";
 import { useAttia } from "../../lib/store";
 
-const CITY_LABEL = "Washington DC";
 // Fixed time-of-day order for grouping (no invented calendar dates).
 const TIME_ORDER: Activity["idealTime"][] = ["Morning", "Afternoon", "Evening"];
 
@@ -23,7 +23,7 @@ function accentFor(a: Activity) {
 export default function Itinerary() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { saved, result, activityCache } = useAttia();
+  const { saved, result, activityCache, cityId } = useAttia();
 
   // Resolve saved ids from the live cache, falling back to the static seed.
   const items = useMemo(() => {
@@ -69,7 +69,7 @@ export default function Itinerary() {
         <View className="flex-row items-center mt-1" style={{ gap: 4 }}>
           <Ionicons name="location-outline" size={14} color="#737373" />
           <Text className="text-sm text-neutral-500">
-            {CITY_LABEL} · {stopLabel}
+            {cityLabel(cityId)} · {stopLabel}
           </Text>
         </View>
       </View>

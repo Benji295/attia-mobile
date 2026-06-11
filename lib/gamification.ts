@@ -7,6 +7,8 @@ export const FULL_DAY_MIN_STOPS = 3;
 export const PERFECT_MATCH_MIN = 75;
 // Streak length that unlocks the "7-day streak" badge.
 export const STREAK_BADGE_DAYS = 7;
+// Distinct cities explored that unlock the "City hopper" badge.
+export const CITY_HOPPER_MIN_CITIES = 2;
 
 export function isFullDay(savedCount: number): boolean {
   return savedCount >= FULL_DAY_MIN_STOPS;

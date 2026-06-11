@@ -4,3 +4,6 @@ nodeLinker: hoisted
 
 allowBuilds:
   msgpackr-extract: false
+
+minimumReleaseAgeExclude:
+  - expo-file-system@56.0.8

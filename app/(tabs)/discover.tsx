@@ -24,6 +24,12 @@ import { getActivities } from "../../lib/places/fetchActivities";
 import { photoUri, accentFor } from "../../lib/activities/display";
 import { computeXp, levelInfo, FULL_DAY_MIN_STOPS } from "../../lib/gamification";
 import { hapticLight, hapticSuccess, isHighMatch, prefersReducedMotion } from "../../lib/feedback";
+import {
+  matchTier,
+  trackActivitySaved,
+  trackActivitySkipped,
+  trackItineraryBuilt
+} from "../../lib/analytics";
 import { type Activity } from "../../types";
 import { useAttia } from "../../lib/store";
 
@@ -209,12 +215,27 @@ export default function Discover() {
   const ranItem = ranked[ci];
 
   function advance(save: boolean) {
-    if (save && ranItem) {
+    if (ranItem) {
       const id = ranItem.activity.id;
-      const wasSaved = saved.includes(id);
-      toggleSave(id);
-      // Celebrate only an actual ADD (not an un-save of a re-encountered card).
-      if (!wasSaved) celebrateSave(ranItem.match, saved.length);
+      if (save) {
+        const wasSaved = saved.includes(id);
+        toggleSave(id);
+        // Celebrate + track only an actual ADD (not an un-save of a re-encounter).
+        if (!wasSaved) {
+          const beforeCount = saved.length;
+          celebrateSave(ranItem.match, beforeCount);
+          trackActivitySaved({
+            activityId: id,
+            category: ranItem.activity.category,
+            matchPercent: ranItem.match,
+            matchTier: matchTier(ranItem.match, ranked.map((r) => r.match))
+          });
+          // itinerary_built once, on the 2 -> 3 transition (a multi-stop plan).
+          if (beforeCount === 2) trackItineraryBuilt(beforeCount + 1);
+        }
+      } else {
+        trackActivitySkipped({ activityId: id, matchPercent: ranItem.match });
+      }
     }
     setCi((c) => c + 1);
   }

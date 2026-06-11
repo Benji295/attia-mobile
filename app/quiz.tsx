@@ -2,9 +2,10 @@ import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Animated, { FadeInLeft, FadeInRight } from "react-native-reanimated";
 import { quizQuestions } from "../data/quiz";
+import { trackQuizStarted, trackQuizCompleted } from "../lib/analytics";
 import { useAttia } from "../lib/store";
 
 export default function Quiz() {
@@ -19,6 +20,11 @@ export default function Quiz() {
   const question = quizQuestions[qi];
   const progress = (qi + 1) / quizQuestions.length;
 
+  // quiz_started — user begins the quiz (entry screen mount).
+  useEffect(() => {
+    trackQuizStarted();
+  }, []);
+
   function pick(optionId: string) {
     const next = { ...answers, [question.id]: optionId };
     if (qi < quizQuestions.length - 1) {
@@ -26,7 +32,8 @@ export default function Quiz() {
       setDirection("forward");
       setQi(qi + 1);
     } else {
-      finishQuiz(next);
+      const result = finishQuiz(next);
+      if (result) trackQuizCompleted(result.dominant); // quiz_completed { archetype }
       router.replace("/results");
     }
   }

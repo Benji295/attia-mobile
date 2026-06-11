@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, type React
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { quizQuestions } from "../data/quiz";
 import { scoreQuiz } from "./scoring/recommendations";
+import { trackAppOpened } from "./analytics";
 import type { Activity, QuizResult } from "../types";
 
 // Single namespaced key holding the whole persisted blob. Bump the version
@@ -86,6 +87,7 @@ export function AttiaProvider({ children }: { children: ReactNode }) {
       setLastActiveDate(today);
 
       setHydrated(true);
+      trackAppOpened(); // app_opened — once per launch, after hydration
     })();
     return () => {
       active = false;

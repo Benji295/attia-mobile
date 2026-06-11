@@ -7,6 +7,7 @@ import ConfettiCannon from "react-native-confetti-cannon";
 import { getPersonalityProfile } from "../lib/scoring/recommendations";
 import { personalityIds } from "../types";
 import { hapticSuccess, prefersReducedMotion } from "../lib/feedback";
+import { trackArchetypeRevealed } from "../lib/analytics";
 import { useAttia } from "../lib/store";
 
 const SCREEN_W = Dimensions.get("window").width;
@@ -21,9 +22,12 @@ export default function Results() {
     if (!result) router.replace("/");
   }, [result]);
 
-  // Tier 3: success haptic as the archetype lands (once, on reveal mount).
+  // Tier 3: success haptic + archetype_revealed as the archetype lands (once).
   useEffect(() => {
-    if (result) hapticSuccess();
+    if (result) {
+      hapticSuccess();
+      trackArchetypeRevealed(result.dominant);
+    }
     // fire once on mount of a valid reveal
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

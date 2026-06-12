@@ -19,7 +19,7 @@ import Animated, {
   withTiming
 } from "react-native-reanimated";
 import ConfettiCannon from "react-native-confetti-cannon";
-import { rankActivities, getPersonalityProfile } from "../../lib/scoring/recommendations";
+import { rankActivities, getPersonalityProfile, matchReason } from "../../lib/scoring/recommendations";
 import { getActivities } from "../../lib/places/fetchActivities";
 import { photoUri, accentFor } from "../../lib/activities/display";
 import { computeXp, levelInfo, FULL_DAY_MIN_STOPS } from "../../lib/gamification";
@@ -28,10 +28,12 @@ import {
   matchTier,
   trackActivitySaved,
   trackActivitySkipped,
-  trackItineraryBuilt
+  trackItineraryBuilt,
+  trackFilterApplied
 } from "../../lib/analytics";
 import { cityLabel } from "../../lib/cities";
 import { CitySelector } from "../../components/CitySelector";
+import { DiscoverFilters, DEFAULT_FILTERS, type Filters, type FilterDim } from "../../components/DiscoverFilters";
 import { type Activity } from "../../types";
 import { useAttia } from "../../lib/store";
 
@@ -103,6 +105,25 @@ export default function Discover() {
   const ranked = useMemo(
     () => (result && data ? rankActivities(data, cityId, result.scores, result) : []),
     [result, data, cityId]
+  );
+
+  // Per-session filters (default All; not persisted). Narrow the ranked deck
+  // client-side, preserving the personality ranking order within the subset.
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const filtersActive =
+    filters.vibe !== "All" || filters.budget !== "All" || filters.setting !== "All" || filters.dayPart !== "All";
+
+  const filtered = useMemo(
+    () =>
+      ranked.filter((r) => {
+        const a = r.activity;
+        if (filters.vibe !== "All" && a.vibe !== filters.vibe) return false;
+        if (filters.budget !== "All" && a.priceLevel !== filters.budget) return false;
+        if (filters.setting !== "All" && a.setting !== filters.setting) return false;
+        if (filters.dayPart !== "All" && a.dayPart !== filters.dayPart) return false;
+        return true;
+      }),
+    [ranked, filters]
   );
 
   // Each new card mounts centered.
@@ -215,7 +236,18 @@ export default function Discover() {
     );
   }
 
-  const ranItem = ranked[ci];
+  const ranItem = filtered[ci];
+
+  function applyFilter(dim: FilterDim, value: string) {
+    setFilters((f) => ({ ...f, [dim]: value }));
+    setCi(0); // re-rank from the top of the filtered set
+    if (value !== "All") trackFilterApplied(dim, value); // not on "All" (clear)
+  }
+
+  function clearFilters() {
+    setFilters(DEFAULT_FILTERS);
+    setCi(0);
+  }
 
   function advance(save: boolean) {
     if (ranItem) {
@@ -314,7 +346,24 @@ export default function Discover() {
     <View className="flex-1 bg-white px-5" style={{ paddingTop: insets.top + 8 }}>
       {Header}
 
-      {ranItem ? (
+      <View className="mb-3">
+        <DiscoverFilters filters={filters} onChange={applyFilter} />
+      </View>
+
+      {filtered.length === 0 && filtersActive ? (
+        <View className="flex-1 items-center justify-center">
+          <Ionicons name="filter-outline" size={34} color="#A3A3A3" />
+          <Text className="text-base text-neutral-500 mt-2 text-center" style={{ maxWidth: 260 }}>
+            No matches with these filters — loosen one.
+          </Text>
+          <Pressable
+            onPress={clearFilters}
+            className="mt-4 bg-neutral-900 rounded-2xl px-6 py-3 active:opacity-80"
+          >
+            <Text className="text-white text-sm font-medium">Clear filters</Text>
+          </Pressable>
+        </View>
+      ) : ranItem ? (
         <>
           <GestureDetector gesture={pan}>
             <Animated.View style={[{ flex: 1 }, cardStyle]}>
@@ -349,14 +398,27 @@ export default function Discover() {
                   </Animated.View>
                 </View>
                 <View className="px-4 py-4">
+                  {isHighMatch(ranItem.match, ranked.map((r) => r.match)) && (
+                    <View
+                      className="flex-row items-center self-start rounded-full px-2 py-0.5 mb-2"
+                      style={{ backgroundColor: getPersonalityProfile(result.dominant).accentSoft }}
+                    >
+                      <Ionicons name="star" size={11} color={getPersonalityProfile(result.dominant).accent} />
+                      <Text
+                        className="text-[11px] font-medium ml-1"
+                        style={{ color: getPersonalityProfile(result.dominant).accent }}
+                      >
+                        Top match for you
+                      </Text>
+                    </View>
+                  )}
                   <Text className="text-lg font-medium text-neutral-900">{ranItem.activity.title}</Text>
                   <Text className="text-xs text-neutral-400 mt-1">
                     {ranItem.activity.neighborhood} · {ranItem.activity.category} · {ranItem.activity.priceLevel}
                   </Text>
-                  <Text className="text-sm text-neutral-600 mt-3 leading-5">{ranItem.explanation}</Text>
-                  {ranItem.traitLabels.length > 0 && (
-                    <Text className="text-xs text-neutral-400 mt-2">{ranItem.traitLabels.join(" · ")}</Text>
-                  )}
+                  <Text className="text-sm text-neutral-600 mt-3 leading-5">
+                    {matchReason(ranItem.activity, result.dominant)}
+                  </Text>
                 </View>
               </View>
             </Animated.View>

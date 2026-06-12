@@ -77,6 +77,10 @@ export function trackItineraryBuilt(stops: number): void {
   track("itinerary_built", { stops });
 }
 
+export function trackFilterApplied(dimension: string, value: string): void {
+  track("filter_applied", { dimension, value });
+}
+
 export function trackAppOpened(): void {
   track("app_opened");
 }

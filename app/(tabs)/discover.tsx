@@ -30,10 +30,11 @@ import {
   trackActivitySkipped,
   trackItineraryBuilt
 } from "../../lib/analytics";
+import { cityLabel } from "../../lib/cities";
+import { CitySelector } from "../../components/CitySelector";
 import { type Activity } from "../../types";
 import { useAttia } from "../../lib/store";
 
-const CITY_ID = "washington-dc";
 const SCREEN_W = Dimensions.get("window").width;
 const SWIPE_THRESHOLD = SCREEN_W * 0.3; // distance past which a release commits
 const OFF_SCREEN = SCREEN_W * 1.5; // where a committed card flies to
@@ -63,7 +64,7 @@ const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
 export default function Discover() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { result, saved, toggleSave, cacheActivities } = useAttia();
+  const { result, saved, cityId, toggleSave, cacheActivities, markCityExplored } = useAttia();
   const [ci, setCi] = useState(0);
   const translateX = useSharedValue(0);
 
@@ -73,17 +74,20 @@ export default function Discover() {
   const [error, setError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
-  // Fetch live activities on mount (and on retry). Cache them in the store so
-  // Saved/Itinerary resolve saved ids from the same set.
+  // Fetch live activities for the selected city (re-runs on city change + retry).
+  // Cache them so Saved/Itinerary resolve saved ids from the same set, and mark
+  // the city explored (City hopper badge).
   useEffect(() => {
     let active = true;
     setLoading(true);
     setError(false);
-    getActivities(CITY_ID)
+    setCi(0); // start the new city's deck from the top
+    getActivities(cityId)
       .then((list) => {
         if (!active) return;
         setData(list);
         cacheActivities(list);
+        markCityExplored(cityId);
         setLoading(false);
       })
       .catch(() => {
@@ -94,11 +98,11 @@ export default function Discover() {
     return () => {
       active = false;
     };
-  }, [reloadKey, cacheActivities]);
+  }, [cityId, reloadKey, cacheActivities, markCityExplored]);
 
   const ranked = useMemo(
-    () => (result && data ? rankActivities(data, CITY_ID, result.scores, result) : []),
-    [result, data]
+    () => (result && data ? rankActivities(data, cityId, result.scores, result) : []),
+    [result, data, cityId]
   );
 
   // Each new card mounts centered.
@@ -151,16 +155,15 @@ export default function Discover() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  // Header reused across content states.
+  // Header reused across content states — title + city selector.
   const Header = (
     <>
       <View className="flex-row items-baseline justify-between">
         <Text className="text-2xl font-medium text-neutral-900">Discover</Text>
         {saved.length > 0 && <Text className="text-xs text-neutral-400">{saved.length} saved</Text>}
       </View>
-      <View className="flex-row items-center mt-1 mb-4" style={{ gap: 4 }}>
-        <Ionicons name="location-outline" size={14} color="#737373" />
-        <Text className="text-sm text-neutral-500">Washington DC</Text>
+      <View className="mt-3 mb-4">
+        <CitySelector />
       </View>
     </>
   );
@@ -186,7 +189,7 @@ export default function Discover() {
         {Header}
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color="#171717" />
-          <Text className="text-sm text-neutral-400 mt-3">Finding your matches in Washington DC…</Text>
+          <Text className="text-sm text-neutral-400 mt-3">Finding your matches in {cityLabel(cityId)}…</Text>
         </View>
       </View>
     );
@@ -228,7 +231,8 @@ export default function Discover() {
             activityId: id,
             category: ranItem.activity.category,
             matchPercent: ranItem.match,
-            matchTier: matchTier(ranItem.match, ranked.map((r) => r.match))
+            matchTier: matchTier(ranItem.match, ranked.map((r) => r.match)),
+            city: cityId
           });
           // itinerary_built once, on the 2 -> 3 transition (a multi-stop plan).
           if (beforeCount === 2) trackItineraryBuilt(beforeCount + 1);

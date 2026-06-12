@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { quizQuestions } from "../data/quiz";
 import { scoreQuiz } from "./scoring/recommendations";
 import { trackAppOpened } from "./analytics";
+import { DEFAULT_CITY } from "./cities";
 import type { Activity, QuizResult } from "../types";
 
 // Single namespaced key holding the whole persisted blob. Bump the version
@@ -18,6 +19,10 @@ type PersistedBlob = {
   // so they are not stored; streak + lastActiveDate are not derivable, so they are.
   streak: number;
   lastActiveDate: string | null; // local day key, e.g. "2026-6-9"
+  // City selector (OAT-20B). Selected city + the distinct cities explored (for
+  // the City hopper badge).
+  cityId: string;
+  citiesExplored: string[];
 };
 
 type AttiaState = {
@@ -30,10 +35,17 @@ type AttiaState = {
   activityCache: Record<string, Activity>;
   /** Consecutive-day launch streak, updated once per launch after hydration. */
   streak: number;
+  /** Currently selected city; drives getActivities across all tabs. */
+  cityId: string;
+  /** Distinct cities the user has loaded/selected (City hopper badge). */
+  citiesExplored: string[];
   /** answers: map of quiz question id -> chosen option id */
   finishQuiz: (answers: Record<string, string>) => QuizResult | null;
   toggleSave: (id: string) => void;
   cacheActivities: (list: Activity[]) => void;
+  setCity: (id: string) => void;
+  /** Mark a city explored (called when its live data loads). Idempotent. */
+  markCityExplored: (id: string) => void;
   reset: () => void;
 };
 
@@ -51,6 +63,8 @@ export function AttiaProvider({ children }: { children: ReactNode }) {
   const [activityCache, setActivityCache] = useState<Record<string, Activity>>({});
   const [streak, setStreak] = useState(0);
   const [lastActiveDate, setLastActiveDate] = useState<string | null>(null);
+  const [cityId, setCityId] = useState<string>(DEFAULT_CITY);
+  const [citiesExplored, setCitiesExplored] = useState<string[]>([]);
 
   // Rehydrate once on mount, then advance the launch streak exactly once.
   useEffect(() => {
@@ -69,6 +83,8 @@ export function AttiaProvider({ children }: { children: ReactNode }) {
           }
           if (typeof blob.streak === "number") loadedStreak = blob.streak;
           if (typeof blob.lastActiveDate === "string") loadedLast = blob.lastActiveDate;
+          if (typeof blob.cityId === "string") setCityId(blob.cityId);
+          if (Array.isArray(blob.citiesExplored)) setCitiesExplored(blob.citiesExplored);
         }
       } catch {
         // Corrupt/unavailable storage: fall back to a fresh session.
@@ -98,9 +114,17 @@ export function AttiaProvider({ children }: { children: ReactNode }) {
   // initial load, so we never clobber stored data with the empty initial state.
   useEffect(() => {
     if (!hydrated) return;
-    const blob: PersistedBlob = { result, saved, activityCache, streak, lastActiveDate };
+    const blob: PersistedBlob = {
+      result,
+      saved,
+      activityCache,
+      streak,
+      lastActiveDate,
+      cityId,
+      citiesExplored
+    };
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(blob)).catch(() => {});
-  }, [hydrated, result, saved, activityCache, streak, lastActiveDate]);
+  }, [hydrated, result, saved, activityCache, streak, lastActiveDate, cityId, citiesExplored]);
 
   // Compute the result with the real scoring engine (scoreQuiz), not a tally.
   const finishQuiz = (answers: Record<string, string>) => {
@@ -120,6 +144,12 @@ export function AttiaProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const markCityExplored = useCallback((id: string) => {
+    setCitiesExplored((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  }, []);
+
+  const setCity = (id: string) => setCityId(id);
+
   const reset = () => {
     setResult(null);
     setSaved([]);
@@ -127,7 +157,21 @@ export function AttiaProvider({ children }: { children: ReactNode }) {
 
   return (
     <AttiaContext.Provider
-      value={{ hydrated, result, saved, activityCache, streak, finishQuiz, toggleSave, cacheActivities, reset }}
+      value={{
+        hydrated,
+        result,
+        saved,
+        activityCache,
+        streak,
+        cityId,
+        citiesExplored,
+        finishQuiz,
+        toggleSave,
+        cacheActivities,
+        setCity,
+        markCityExplored,
+        reset
+      }}
     >
       {children}
     </AttiaContext.Provider>

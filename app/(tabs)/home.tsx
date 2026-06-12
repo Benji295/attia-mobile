@@ -7,18 +7,19 @@ import { useEffect, useMemo, useState } from "react";
 import { rankActivities, getPersonalityProfile } from "../../lib/scoring/recommendations";
 import { getActivities } from "../../lib/places/fetchActivities";
 import { photoUri, accentFor } from "../../lib/activities/display";
+import { cityLabel } from "../../lib/cities";
+import { CitySelector } from "../../components/CitySelector";
 import { type Activity } from "../../types";
 import { useAttia } from "../../lib/store";
 
-const CITY_ID = "washington-dc";
-const CITY_LABEL = "Washington DC";
 const INK = "#171717";
 const BRAND = "#FB923C"; // sunset warmth, from the locked palette
 
 export default function Home() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { result, saved, cacheActivities } = useAttia();
+  const { result, saved, cityId, cacheActivities, markCityExplored } = useAttia();
+  const cityName = cityLabel(cityId);
 
   const [data, setData] = useState<Activity[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,11 +36,12 @@ export default function Home() {
     let active = true;
     setLoading(true);
     setError(false);
-    getActivities(CITY_ID)
+    getActivities(cityId)
       .then((list) => {
         if (!active) return;
         setData(list);
         cacheActivities(list);
+        markCityExplored(cityId);
         setLoading(false);
       })
       .catch(() => {
@@ -50,11 +52,11 @@ export default function Home() {
     return () => {
       active = false;
     };
-  }, [result, reloadKey, cacheActivities]);
+  }, [result, cityId, reloadKey, cacheActivities, markCityExplored]);
 
   const ranked = useMemo(
-    () => (result && data ? rankActivities(data, CITY_ID, result.scores, result) : []),
-    [result, data]
+    () => (result && data ? rankActivities(data, cityId, result.scores, result) : []),
+    [result, data, cityId]
   );
 
   const greeting = useMemo(() => {
@@ -119,7 +121,7 @@ export default function Home() {
         {GreetingHeader}
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color={INK} />
-          <Text className="text-sm text-neutral-400 mt-3">Pulling your matches in {CITY_LABEL}…</Text>
+          <Text className="text-sm text-neutral-400 mt-3">Pulling your matches in {cityName}…</Text>
         </View>
       </View>
     );
@@ -158,6 +160,11 @@ export default function Home() {
       >
         {GreetingHeader}
 
+        {/* City selector — same control as Discover. */}
+        <View className="mb-5">
+          <CitySelector />
+        </View>
+
         {/* Featured hero — ranked[0], photo-forward. Tap → Discover. */}
         {hero && (
           <Pressable onPress={() => router.navigate("/discover")} className="active:opacity-90">
@@ -181,7 +188,7 @@ export default function Home() {
 
               <View className="absolute left-4 right-4 bottom-4">
                 <Text className="text-xs font-medium text-white/80" style={{ letterSpacing: 1.5 }}>
-                  {CITY_LABEL.toUpperCase()}
+                  {cityName.toUpperCase()}
                 </Text>
                 <Text className="text-2xl font-medium text-white mt-1" numberOfLines={2}>
                   {hero.activity.title}
@@ -246,7 +253,7 @@ export default function Home() {
             <View className="flex-1">
               <Text className="text-base font-medium text-neutral-900">Pick up your itinerary</Text>
               <Text className="text-xs text-neutral-400 mt-0.5">
-                {saved.length} saved {saved.length === 1 ? "stop" : "stops"} in {CITY_LABEL}
+                {saved.length} saved {saved.length === 1 ? "stop" : "stops"} in {cityName}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#A3A3A3" />

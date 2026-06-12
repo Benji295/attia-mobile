@@ -11,7 +11,8 @@ import {
   isFullDay,
   FULL_DAY_MIN_STOPS,
   PERFECT_MATCH_MIN,
-  STREAK_BADGE_DAYS
+  STREAK_BADGE_DAYS,
+  CITY_HOPPER_MIN_CITIES
 } from "../../lib/gamification";
 import { activities as seedActivities } from "../../data/activities";
 import { type Activity } from "../../types";
@@ -59,7 +60,7 @@ function LevelRing({ progress, level, accent }: { progress: number; level: numbe
 export default function Profile() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { result, saved, streak, activityCache, reset } = useAttia();
+  const { result, saved, streak, activityCache, citiesExplored, reset } = useAttia();
 
   // Resolve saved ids -> activities from the live cache (seed fallback) for the
   // "Perfect match" badge.
@@ -107,7 +108,13 @@ export default function Profile() {
     { key: "collector", label: "Collector", icon: "bookmark", unlocked: savedCount >= 3, unlock: "Save 3 activities" },
     { key: "day-maker", label: "Day maker", icon: "sunny", unlocked: fullDay, unlock: `Plan a full day (${FULL_DAY_MIN_STOPS}+ stops)` },
     { key: "perfect-match", label: "Perfect match", icon: "star", unlocked: hasPerfect, unlock: `Save a ${PERFECT_MATCH_MIN}%+ match` },
-    { key: "city-hopper", label: "City hopper", icon: "airplane", unlocked: false, unlock: "Explore a 2nd city" },
+    {
+      key: "city-hopper",
+      label: "City hopper",
+      icon: "airplane",
+      unlocked: citiesExplored.length >= CITY_HOPPER_MIN_CITIES,
+      unlock: "Explore a 2nd city"
+    },
     { key: "streak-7", label: `${STREAK_BADGE_DAYS}-day streak`, icon: "flame", unlocked: streak >= STREAK_BADGE_DAYS, unlock: `Reach a ${STREAK_BADGE_DAYS}-day streak` }
   ];
 

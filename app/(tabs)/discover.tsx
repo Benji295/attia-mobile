@@ -19,7 +19,7 @@ import Animated, {
   withTiming
 } from "react-native-reanimated";
 import ConfettiCannon from "react-native-confetti-cannon";
-import { rankActivities, getPersonalityProfile } from "../../lib/scoring/recommendations";
+import { rankActivities, getPersonalityProfile, matchReason } from "../../lib/scoring/recommendations";
 import { getActivities } from "../../lib/places/fetchActivities";
 import { photoUri, accentFor } from "../../lib/activities/display";
 import { computeXp, levelInfo, FULL_DAY_MIN_STOPS } from "../../lib/gamification";
@@ -28,10 +28,13 @@ import {
   matchTier,
   trackActivitySaved,
   trackActivitySkipped,
-  trackItineraryBuilt
+  trackItineraryBuilt,
+  trackFilterApplied,
+  trackQuickAddItinerary
 } from "../../lib/analytics";
 import { cityLabel } from "../../lib/cities";
 import { CitySelector } from "../../components/CitySelector";
+import { DiscoverFilters, DEFAULT_FILTERS, type Filters, type FilterDim } from "../../components/DiscoverFilters";
 import { type Activity } from "../../types";
 import { useAttia } from "../../lib/store";
 
@@ -103,6 +106,25 @@ export default function Discover() {
   const ranked = useMemo(
     () => (result && data ? rankActivities(data, cityId, result.scores, result) : []),
     [result, data, cityId]
+  );
+
+  // Per-session filters (default All; not persisted). Narrow the ranked deck
+  // client-side, preserving the personality ranking order within the subset.
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const filtersActive =
+    filters.vibe !== "All" || filters.budget !== "All" || filters.setting !== "All" || filters.dayPart !== "All";
+
+  const filtered = useMemo(
+    () =>
+      ranked.filter((r) => {
+        const a = r.activity;
+        if (filters.vibe !== "All" && a.vibe !== filters.vibe) return false;
+        if (filters.budget !== "All" && a.priceLevel !== filters.budget) return false;
+        if (filters.setting !== "All" && a.setting !== filters.setting) return false;
+        if (filters.dayPart !== "All" && a.dayPart !== filters.dayPart) return false;
+        return true;
+      }),
+    [ranked, filters]
   );
 
   // Each new card mounts centered.
@@ -215,28 +237,59 @@ export default function Discover() {
     );
   }
 
-  const ranItem = ranked[ci];
+  const ranItem = filtered[ci];
+
+  function applyFilter(dim: FilterDim, value: string) {
+    setFilters((f) => ({ ...f, [dim]: value }));
+    setCi(0); // re-rank from the top of the filtered set
+    if (value !== "All") trackFilterApplied(dim, value); // not on "All" (clear)
+  }
+
+  function clearFilters() {
+    setFilters(DEFAULT_FILTERS);
+    setCi(0);
+  }
+
+  // Add the current card to the itinerary (= save it) once, reusing the save +
+  // celebration path. Shared by the heart/swipe and the quick-add pill.
+  function commitSave() {
+    if (!ranItem) return;
+    const id = ranItem.activity.id;
+    const beforeCount = saved.length;
+    toggleSave(id);
+    celebrateSave(ranItem.match, beforeCount);
+    trackActivitySaved({
+      activityId: id,
+      category: ranItem.activity.category,
+      matchPercent: ranItem.match,
+      matchTier: matchTier(ranItem.match, ranked.map((r) => r.match)),
+      city: cityId
+    });
+    // itinerary_built once, on the 2 -> 3 transition (a multi-stop plan).
+    if (beforeCount === 2) trackItineraryBuilt(beforeCount + 1);
+  }
+
+  // Quick-add to itinerary without leaving Discover or advancing the deck. Flat
+  // itinerary model (saved list), so "add" === "save"; day is null. Tapping again
+  // removes it (toggle). Adds count as a save and fire the celebration.
+  function quickAdd() {
+    if (!ranItem) return;
+    const id = ranItem.activity.id;
+    if (saved.includes(id)) {
+      toggleSave(id); // remove from itinerary
+      return;
+    }
+    commitSave();
+    trackQuickAddItinerary(id, null);
+  }
 
   function advance(save: boolean) {
     if (ranItem) {
       const id = ranItem.activity.id;
       if (save) {
-        const wasSaved = saved.includes(id);
-        toggleSave(id);
-        // Celebrate + track only an actual ADD (not an un-save of a re-encounter).
-        if (!wasSaved) {
-          const beforeCount = saved.length;
-          celebrateSave(ranItem.match, beforeCount);
-          trackActivitySaved({
-            activityId: id,
-            category: ranItem.activity.category,
-            matchPercent: ranItem.match,
-            matchTier: matchTier(ranItem.match, ranked.map((r) => r.match)),
-            city: cityId
-          });
-          // itinerary_built once, on the 2 -> 3 transition (a multi-stop plan).
-          if (beforeCount === 2) trackItineraryBuilt(beforeCount + 1);
-        }
+        // Ensure-saved on a right swipe (never un-saves a re-encountered card,
+        // so a quick-add followed by a swipe can't accidentally drop it).
+        if (!saved.includes(id)) commitSave();
       } else {
         trackActivitySkipped({ activityId: id, matchPercent: ranItem.match });
       }
@@ -314,7 +367,24 @@ export default function Discover() {
     <View className="flex-1 bg-white px-5" style={{ paddingTop: insets.top + 8 }}>
       {Header}
 
-      {ranItem ? (
+      <View className="mb-3">
+        <DiscoverFilters filters={filters} onChange={applyFilter} />
+      </View>
+
+      {filtered.length === 0 && filtersActive ? (
+        <View className="flex-1 items-center justify-center">
+          <Ionicons name="filter-outline" size={34} color="#A3A3A3" />
+          <Text className="text-base text-neutral-500 mt-2 text-center" style={{ maxWidth: 260 }}>
+            No matches with these filters — loosen one.
+          </Text>
+          <Pressable
+            onPress={clearFilters}
+            className="mt-4 bg-neutral-900 rounded-2xl px-6 py-3 active:opacity-80"
+          >
+            <Text className="text-white text-sm font-medium">Clear filters</Text>
+          </Pressable>
+        </View>
+      ) : ranItem ? (
         <>
           <GestureDetector gesture={pan}>
             <Animated.View style={[{ flex: 1 }, cardStyle]}>
@@ -349,14 +419,44 @@ export default function Discover() {
                   </Animated.View>
                 </View>
                 <View className="px-4 py-4">
+                  {isHighMatch(ranItem.match, ranked.map((r) => r.match)) && (
+                    <View
+                      className="flex-row items-center self-start rounded-full px-2 py-0.5 mb-2"
+                      style={{ backgroundColor: getPersonalityProfile(result.dominant).accentSoft }}
+                    >
+                      <Ionicons name="star" size={11} color={getPersonalityProfile(result.dominant).accent} />
+                      <Text
+                        className="text-[11px] font-medium ml-1"
+                        style={{ color: getPersonalityProfile(result.dominant).accent }}
+                      >
+                        Top match for you
+                      </Text>
+                    </View>
+                  )}
                   <Text className="text-lg font-medium text-neutral-900">{ranItem.activity.title}</Text>
                   <Text className="text-xs text-neutral-400 mt-1">
                     {ranItem.activity.neighborhood} · {ranItem.activity.category} · {ranItem.activity.priceLevel}
                   </Text>
-                  <Text className="text-sm text-neutral-600 mt-3 leading-5">{ranItem.explanation}</Text>
-                  {ranItem.traitLabels.length > 0 && (
-                    <Text className="text-xs text-neutral-400 mt-2">{ranItem.traitLabels.join(" · ")}</Text>
-                  )}
+                  <Text className="text-sm text-neutral-600 mt-3 leading-5">
+                    {matchReason(ranItem.activity, result.dominant)}
+                  </Text>
+
+                  {/* Quick-add to itinerary — stays on the card; toggles. */}
+                  <Pressable
+                    onPress={quickAdd}
+                    className={`flex-row items-center self-start rounded-full px-3 py-1.5 mt-3 border active:opacity-80 ${
+                      saved.includes(ranItem.activity.id) ? "bg-neutral-100 border-neutral-200" : "border-neutral-900"
+                    }`}
+                  >
+                    <Ionicons
+                      name={saved.includes(ranItem.activity.id) ? "checkmark" : "add"}
+                      size={15}
+                      color="#171717"
+                    />
+                    <Text className="text-xs font-medium text-neutral-900 ml-1">
+                      {saved.includes(ranItem.activity.id) ? "In itinerary" : "Add to itinerary"}
+                    </Text>
+                  </Pressable>
                 </View>
               </View>
             </Animated.View>

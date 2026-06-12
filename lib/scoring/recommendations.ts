@@ -106,6 +106,21 @@ export function explainActivityMatch(
   };
 }
 
+// Richer one-line "why this matches you": the user's dominant archetype + the
+// activity's strongest driver archetype (its top personality score, excluding the
+// dominant). Reads the scores already computed — no re-scoring.
+export function matchReason(activity: Activity, dominant: PersonalityId): string {
+  const name = (id: PersonalityId) => getPersonalityProfile(id).name.replace("The ", "");
+  const rankedTraits = [...personalityIds].sort(
+    (a, b) => activity.personalityScores[b] - activity.personalityScores[a]
+  );
+  const driver = rankedTraits.find((id) => id !== dominant) ?? rankedTraits[0];
+  if (rankedTraits[0] === dominant) {
+    return `Strong fit for your ${name(dominant)} energy, with a ${name(driver)} streak.`;
+  }
+  return `Fits your ${name(dominant)} side, with a strong ${name(driver)} streak.`;
+}
+
 export function rankActivities(
   activities: Activity[],
   cityId: string,

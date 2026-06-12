@@ -77,6 +77,15 @@ export function trackItineraryBuilt(stops: number): void {
   track("itinerary_built", { stops });
 }
 
+export function trackFilterApplied(dimension: string, value: string): void {
+  track("filter_applied", { dimension, value });
+}
+
+/** day is null in the current flat itinerary model (no per-day assignment yet). */
+export function trackQuickAddItinerary(activityId: string, day: string | null = null): void {
+  track("quick_add_itinerary", { activityId, day });
+}
+
 export function trackAppOpened(): void {
   track("app_opened");
 }

@@ -29,8 +29,7 @@ import {
   trackActivitySaved,
   trackActivitySkipped,
   trackItineraryBuilt,
-  trackFilterApplied,
-  trackQuickAddItinerary
+  trackFilterApplied
 } from "../../lib/analytics";
 import { cityLabel } from "../../lib/cities";
 import { CitySelector } from "../../components/CitySelector";
@@ -250,46 +249,26 @@ export default function Discover() {
     setCi(0);
   }
 
-  // Add the current card to the itinerary (= save it) once, reusing the save +
-  // celebration path. Shared by the heart/swipe and the quick-add pill.
-  function commitSave() {
-    if (!ranItem) return;
-    const id = ranItem.activity.id;
-    const beforeCount = saved.length;
-    toggleSave(id);
-    celebrateSave(ranItem.match, beforeCount);
-    trackActivitySaved({
-      activityId: id,
-      category: ranItem.activity.category,
-      matchPercent: ranItem.match,
-      matchTier: matchTier(ranItem.match, ranked.map((r) => r.match)),
-      city: cityId
-    });
-    // itinerary_built once, on the 2 -> 3 transition (a multi-stop plan).
-    if (beforeCount === 2) trackItineraryBuilt(beforeCount + 1);
-  }
-
-  // Quick-add to itinerary without leaving Discover or advancing the deck. Flat
-  // itinerary model (saved list), so "add" === "save"; day is null. Tapping again
-  // removes it (toggle). Adds count as a save and fire the celebration.
-  function quickAdd() {
-    if (!ranItem) return;
-    const id = ranItem.activity.id;
-    if (saved.includes(id)) {
-      toggleSave(id); // remove from itinerary
-      return;
-    }
-    commitSave();
-    trackQuickAddItinerary(id, null);
-  }
-
   function advance(save: boolean) {
     if (ranItem) {
       const id = ranItem.activity.id;
       if (save) {
-        // Ensure-saved on a right swipe (never un-saves a re-encountered card,
-        // so a quick-add followed by a swipe can't accidentally drop it).
-        if (!saved.includes(id)) commitSave();
+        const wasSaved = saved.includes(id);
+        toggleSave(id);
+        // Celebrate + track only an actual ADD (not an un-save of a re-encounter).
+        if (!wasSaved) {
+          const beforeCount = saved.length;
+          celebrateSave(ranItem.match, beforeCount);
+          trackActivitySaved({
+            activityId: id,
+            category: ranItem.activity.category,
+            matchPercent: ranItem.match,
+            matchTier: matchTier(ranItem.match, ranked.map((r) => r.match)),
+            city: cityId
+          });
+          // itinerary_built once, on the 2 -> 3 transition (a multi-stop plan).
+          if (beforeCount === 2) trackItineraryBuilt(beforeCount + 1);
+        }
       } else {
         trackActivitySkipped({ activityId: id, matchPercent: ranItem.match });
       }
@@ -440,23 +419,6 @@ export default function Discover() {
                   <Text className="text-sm text-neutral-600 mt-3 leading-5">
                     {matchReason(ranItem.activity, result.dominant)}
                   </Text>
-
-                  {/* Quick-add to itinerary — stays on the card; toggles. */}
-                  <Pressable
-                    onPress={quickAdd}
-                    className={`flex-row items-center self-start rounded-full px-3 py-1.5 mt-3 border active:opacity-80 ${
-                      saved.includes(ranItem.activity.id) ? "bg-neutral-100 border-neutral-200" : "border-neutral-900"
-                    }`}
-                  >
-                    <Ionicons
-                      name={saved.includes(ranItem.activity.id) ? "checkmark" : "add"}
-                      size={15}
-                      color="#171717"
-                    />
-                    <Text className="text-xs font-medium text-neutral-900 ml-1">
-                      {saved.includes(ranItem.activity.id) ? "In itinerary" : "Add to itinerary"}
-                    </Text>
-                  </Pressable>
                 </View>
               </View>
             </Animated.View>

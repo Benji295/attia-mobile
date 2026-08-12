@@ -215,6 +215,37 @@ describe("XP, level and cities-explored stay global (Snapchat-score model)", () 
     expect(store().citiesExplored).toEqual([DC]);
   });
 
+  it("cities-explored never shrinks — un-saving a city's only stop keeps it earned", async () => {
+    const { store } = await mountStore();
+
+    write(() => store().toggleSave(DC_ACTIVITY));
+    write(() => store().setCity(MIAMI));
+    write(() => store().toggleSave(MIAMI_PLACE));
+    expect(store().citiesExplored).toEqual([DC, MIAMI]);
+
+    // Change of heart: un-save the only Miami stop.
+    write(() => store().toggleSave(MIAMI_PLACE));
+
+    expect(store().activeSaved).toEqual([]); // the stop is gone...
+    expect(store().citiesExplored).toEqual([DC, MIAMI]); // ...the badge is not
+    expect(store().citiesExplored.length).toBeGreaterThanOrEqual(CITY_HOPPER_MIN_CITIES);
+  });
+
+  it("the earned set survives a relaunch with no saves left at all", async () => {
+    const first = await mountStore();
+    write(() => first.store().toggleSave(DC_ACTIVITY));
+    write(() => first.store().setCity(MIAMI));
+    write(() => first.store().toggleSave(MIAMI_PLACE));
+    write(() => first.store().toggleSave(MIAMI_PLACE)); // un-save
+    write(() => first.store().setCity(DC));
+    write(() => first.store().toggleSave(DC_ACTIVITY)); // un-save
+    first.unmount();
+
+    const second = await mountStore();
+    expect(second.store().saved).toEqual([]);
+    expect(second.store().citiesExplored).toEqual([DC, MIAMI]);
+  });
+
   it("streak is untouched by city switching", async () => {
     const { store } = await mountStore();
     const before = store().streak;

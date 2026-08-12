@@ -15,6 +15,19 @@ export function isFullDay(savedCount: number): boolean {
 }
 
 /**
+ * Does this save complete a multi-stop plan — i.e. should itinerary_built fire?
+ * Once, on the 2 -> 3 transition WITHIN ONE CITY (OAT-61).
+ *
+ * The count passed here must be the ACTIVE city's, never the global one: one
+ * save each in DC, NYC and Miami is three saves but no plan — no city has a
+ * multi-stop day — and itinerary_built is an OAT-7 funnel metric, so it has to
+ * mean what it says.
+ */
+export function firesItineraryBuilt(beforeCountInCity: number): boolean {
+  return beforeCountInCity + 1 === FULL_DAY_MIN_STOPS;
+}
+
+/**
  * XP is a pure function of state:
  *   (hasResult ? 50) + savedCount*10 + (fullDay ? 30)
  * Recomputed from state every render, so it can never drift or double-count.

@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { migrateBlob, SCHEMA_VERSION } from "../lib/store";
+import { CITY_HOPPER_MIN_CITIES } from "../lib/gamification";
 import { DEFAULT_CITY } from "../lib/cities";
 import { mountStore, write } from "./helpers";
 
@@ -66,6 +67,16 @@ describe("migrateBlob", () => {
     expect(blob.lastActiveDate).toBe("2026-8-10");
     expect(blob.cityId).toBe("miami");
     expect(blob.result).toBeNull();
+    // The badge floor is part of "nothing is dropped".
+    expect(blob.citiesExplored).toEqual(["washington-dc", "miami"]);
+  });
+
+  it("carries the stored citiesExplored floor through, and drops only junk entries", () => {
+    expect(migrateBlob(legacyBlob()).blob.citiesExplored).toEqual(["washington-dc", "miami"]);
+    expect(migrateBlob(legacyBlob({ citiesExplored: undefined })).blob.citiesExplored).toEqual([]);
+    expect(
+      migrateBlob(legacyBlob({ citiesExplored: ["miami", "", null, 7] })).blob.citiesExplored
+    ).toEqual(["miami"]);
   });
 
   it("falls back to the default city when the record has no cityId", () => {
@@ -154,6 +165,41 @@ describe("migration through the real store", () => {
     write(() => store().setCity("washington-dc"));
     expect(store().activeSaved).toEqual([]);
     expect(store().savedElsewhereCount).toBe(3);
+  });
+
+  it("a badge earned by browsing survives the upgrade with ZERO saves", async () => {
+    // The pre-OAT-61 tester: browsed DC and Miami, saved nothing, earned City
+    // hopper. Cities-explored now derives from saves — without the floor this
+    // user would open the app to a re-locked badge.
+    await AsyncStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(legacyBlob({ saved: [], citiesExplored: ["washington-dc", "miami"] }))
+    );
+
+    const { store } = await mountStore();
+
+    expect(store().saved).toEqual([]);
+    expect(store().citiesExplored).toEqual(["washington-dc", "miami"]);
+    expect(store().citiesExplored.length).toBeGreaterThanOrEqual(CITY_HOPPER_MIN_CITIES);
+
+    // ...and it is still there after the write-through persists the new schema.
+    const persisted = JSON.parse((await AsyncStorage.getItem(STORAGE_KEY)) as string);
+    expect(persisted.citiesExplored).toEqual(["washington-dc", "miami"]);
+  });
+
+  it("the floor unions with saves rather than replacing them", async () => {
+    await AsyncStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(legacyBlob({ saved: [], citiesExplored: ["washington-dc"] }))
+    );
+
+    const { store } = await mountStore();
+    expect(store().citiesExplored).toEqual(["washington-dc"]);
+
+    write(() => store().setCity("miami"));
+    write(() => store().toggleSave("miami-place-under-test"));
+
+    expect(store().citiesExplored).toEqual(["washington-dc", "miami"]);
   });
 
   it("a user with zero legacy saves gets a clean, empty, migrated record", async () => {

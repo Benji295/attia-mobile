@@ -22,7 +22,7 @@ import ConfettiCannon from "react-native-confetti-cannon";
 import { rankActivities, getPersonalityProfile, matchReason } from "../../lib/scoring/recommendations";
 import { getActivities } from "../../lib/places/fetchActivities";
 import { photoUri, accentFor } from "../../lib/activities/display";
-import { computeXp, levelInfo, FULL_DAY_MIN_STOPS } from "../../lib/gamification";
+import { computeXp, levelInfo, firesItineraryBuilt, FULL_DAY_MIN_STOPS } from "../../lib/gamification";
 import { hapticLight, hapticSuccess, isHighMatch, prefersReducedMotion } from "../../lib/feedback";
 import {
   matchTier,
@@ -261,8 +261,12 @@ export default function Discover() {
         toggleSave(id); // stamps the active city at write time
         // Celebrate + track only an actual ADD (not an un-save of a re-encounter).
         if (!wasSaved) {
-          // XP/level are global (Snapchat-score model) — count every city.
+          // GLOBAL — XP, level and the Collector badge are a cumulative per-user
+          // score, and the celebration escalates on the same count so a toast can
+          // never contradict what Profile shows.
           const beforeCount = saved.length;
+          // PER-CITY — a plan lives in one city (see firesItineraryBuilt).
+          const beforeInCity = activeSaved.length;
           celebrateSave(ranItem.match, beforeCount);
           trackActivitySaved({
             activityId: id,
@@ -272,8 +276,9 @@ export default function Discover() {
             city: cityId,
             cityId
           });
-          // itinerary_built once, on the 2 -> 3 transition (a multi-stop plan).
-          if (beforeCount === 2) trackItineraryBuilt(beforeCount + 1);
+          // itinerary_built once, on this city's 2 -> 3 transition. Three saves
+          // spread across three cities is not a plan and must not fire it.
+          if (firesItineraryBuilt(beforeInCity)) trackItineraryBuilt(beforeInCity + 1);
         }
       } else {
         trackActivitySkipped({ activityId: id, matchPercent: ranItem.match });

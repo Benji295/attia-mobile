@@ -56,9 +56,16 @@ type PersistedBlob = {
   // so they are not stored; streak + lastActiveDate are not derivable, so they are.
   streak: number;
   lastActiveDate: string | null; // local day key, e.g. "2026-6-9"
-  // City selector (OAT-20B). The active city. Cities-explored is no longer
-  // stored — it derives from the distinct cityIds across all saves (OAT-61).
+  // City selector (OAT-20B). The active city.
   cityId: string;
+  /**
+   * Cities explored, kept as a monotonic FLOOR (OAT-61). Pre-OAT-61 this was
+   * written when a city's data merely LOADED, so testers earned City hopper by
+   * browsing; the displayed value now unions this with the cities derived from
+   * saves. Preserved on migration and never shrunk — an earned badge must never
+   * un-earn.
+   */
+  citiesExplored: string[];
 };
 
 type AttiaState = {
@@ -80,7 +87,10 @@ type AttiaState = {
   activityCache: Record<string, Activity>;
   /** Consecutive-day launch streak, updated once per launch after hydration. */
   streak: number;
-  /** Distinct cities across ALL saves — global, never scoped (City hopper badge). */
+  /**
+   * Cities explored — global, never scoped, never shrinks (City hopper badge).
+   * The union of the persisted floor and the cities derived from ALL saves.
+   */
   citiesExplored: string[];
   /**
    * THE one source of truth for which city the app is scoped to. Every read and
@@ -129,6 +139,17 @@ export function citiesExploredFrom(saved: SavedEntry[]): string[] {
   return seen;
 }
 
+/**
+ * Merge city sets, preserving order and dropping duplicates. Used to union the
+ * persisted floor with the cities derived from saves, so cities-explored only
+ * ever grows — a badge earned by browsing before OAT-61 stays earned.
+ */
+export function unionCities(...sets: string[][]): string[] {
+  const out: string[] = [];
+  for (const set of sets) for (const c of set) if (c && !out.includes(c)) out.push(c);
+  return out;
+}
+
 /** How many saves sit under a city other than `cityId`. */
 export function countSavedElsewhere(saved: SavedEntry[], cityId: string): number {
   return saved.reduce((n, e) => (e.cityId === cityId ? n : n + 1), 0);
@@ -141,7 +162,9 @@ export function countSavedElsewhere(saved: SavedEntry[], cityId: string): number
  *
  * Nothing is dropped: an entry that already carries a valid cityId is left
  * exactly as-is, which is also what makes this idempotent. Re-running on an
- * already-migrated record stamps nothing and reports 0.
+ * already-migrated record stamps nothing and reports 0. The stored
+ * citiesExplored set is carried through untouched — it is the floor that keeps
+ * a City hopper badge earned by browsing (pre-OAT-61) from un-earning.
  *
  * Returns the normalized blob plus how many entries were stamped.
  */
@@ -190,6 +213,10 @@ export function migrateBlob(
       saved,
       activityCache:
         src.activityCache && typeof src.activityCache === "object" ? src.activityCache : {},
+      // Carried through, never discarded — this is the badge floor.
+      citiesExplored: Array.isArray(src.citiesExplored)
+        ? src.citiesExplored.filter((c): c is string => typeof c === "string" && !!c)
+        : [],
       streak: typeof src.streak === "number" ? src.streak : 0,
       lastActiveDate: typeof src.lastActiveDate === "string" ? src.lastActiveDate : null,
       cityId: activeAtMigration
@@ -213,6 +240,9 @@ export function AttiaProvider({ children }: { children: ReactNode }) {
   const [streak, setStreak] = useState(0);
   const [lastActiveDate, setLastActiveDate] = useState<string | null>(null);
   const [cityId, setCityId] = useState<string>(DEFAULT_CITY);
+  // Monotonic floor for cities-explored: legacy browse-based data, plus every
+  // city ever saved in. Only ever grows, so a badge can never un-earn.
+  const [citiesExploredFloor, setCitiesExploredFloor] = useState<string[]>([]);
 
   // Mirror the active city in a ref so activeCityId() is right even when a write
   // fires from a callback captured on an earlier render (e.g. the swipe
@@ -244,6 +274,8 @@ export function AttiaProvider({ children }: { children: ReactNode }) {
           setResult(blob.result);
           setSaved(blob.saved);
           setActivityCache(blob.activityCache);
+          // Stored set survives the upgrade — City hopper stays earned.
+          setCitiesExploredFloor(blob.citiesExplored);
           loadedStreak = blob.streak;
           loadedLast = blob.lastActiveDate;
           setCityId(blob.cityId);
@@ -285,10 +317,23 @@ export function AttiaProvider({ children }: { children: ReactNode }) {
       activityCache,
       streak,
       lastActiveDate,
-      cityId
+      cityId,
+      citiesExplored: citiesExploredFloor
     };
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(blob)).catch(() => {});
-  }, [hydrated, result, saved, activityCache, streak, lastActiveDate, cityId]);
+  }, [hydrated, result, saved, activityCache, streak, lastActiveDate, cityId, citiesExploredFloor]);
+
+  // A city you have saved in is explored forever. Folding save-cities into the
+  // persisted floor keeps the badge earned even if the user later un-saves every
+  // stop there. Returns `prev` unchanged when there is nothing new, so this
+  // never loops.
+  useEffect(() => {
+    if (!hydrated) return;
+    setCitiesExploredFloor((prev) => {
+      const next = unionCities(prev, citiesExploredFrom(saved));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [hydrated, saved]);
 
   // Compute the result with the real scoring engine (scoreQuiz), not a tally.
   const finishQuiz = (answers: Record<string, string>) => {
@@ -308,8 +353,14 @@ export function AttiaProvider({ children }: { children: ReactNode }) {
   const activeSaved = useMemo(() => savedInCity(saved, cityId), [saved, cityId]);
   const savedElsewhereCount = useMemo(() => countSavedElsewhere(saved, cityId), [saved, cityId]);
   // Global by design (OAT-61 §6): every city the user has saved in, not just the
-  // active one.
-  const citiesExplored = useMemo(() => citiesExploredFrom(saved), [saved]);
+  // active one — unioned with the persisted floor so legacy browse-based data
+  // still counts and the value never shrinks. Unioned here rather than read
+  // straight off the floor so a brand-new save counts on THIS render, not the
+  // next one.
+  const citiesExplored = useMemo(
+    () => unionCities(citiesExploredFloor, citiesExploredFrom(saved)),
+    [citiesExploredFloor, saved]
+  );
 
   const cacheActivities = useCallback((list: Activity[]) => {
     setActivityCache((prev) => {

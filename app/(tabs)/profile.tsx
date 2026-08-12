@@ -63,12 +63,13 @@ export default function Profile() {
   const { result, saved, streak, activityCache, citiesExplored, reset } = useAttia();
 
   // Resolve saved ids -> activities from the live cache (seed fallback) for the
-  // "Perfect match" badge.
+  // "Perfect match" badge. Deliberately GLOBAL (every city): XP, level, streak
+  // and badges are a cumulative per-user score, never scoped to a trip.
   const savedActivities = useMemo(() => {
     const byId: Record<string, Activity> = {};
     for (const a of seedActivities) byId[a.id] = a;
     Object.assign(byId, activityCache);
-    return saved.map((id) => byId[id]).filter(Boolean) as Activity[];
+    return saved.map((e) => byId[e.id]).filter(Boolean) as Activity[];
   }, [saved, activityCache]);
 
   // No quiz result yet → keep it honest and simple (archetype is required to theme).
@@ -99,7 +100,13 @@ export default function Profile() {
   const tiles = [
     { icon: "heart" as const, label: "Saved", value: savedCount, color: getPersonalityProfile("socialite").accent },
     { icon: "map" as const, label: "Stops planned", value: savedCount, color: getPersonalityProfile("explorer").accent },
-    { icon: "location" as const, label: "Cities explored", value: 1, color: getPersonalityProfile("connector").accent },
+    {
+      icon: "location" as const,
+      label: "Cities explored",
+      // Distinct cities across ALL saves (was hardcoded to 1).
+      value: citiesExplored.length,
+      color: getPersonalityProfile("connector").accent
+    },
     { icon: "flame" as const, label: "Day streak", value: streak, color: getPersonalityProfile("adrenaline-junkie").accent }
   ];
 

@@ -23,15 +23,18 @@ function accentFor(a: Activity) {
 export default function Itinerary() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { saved, result, activityCache, cityId } = useAttia();
+  const { activeSaved, result, activityCache, activeCityId } = useAttia();
+  const cityId = activeCityId();
 
-  // Resolve saved ids from the live cache, falling back to the static seed.
+  // Resolve THIS city's stops from the live cache, falling back to the static
+  // seed. An itinerary stop is a save (see SavedEntry) — scoped at write time,
+  // so another city's place can never appear under this header.
   const items = useMemo(() => {
     const byId: Record<string, Activity> = {};
     for (const a of seedActivities) byId[a.id] = a;
     Object.assign(byId, activityCache);
-    return saved.map((id) => byId[id]).filter(Boolean) as Activity[];
-  }, [saved, activityCache]);
+    return activeSaved.map((e) => byId[e.id]).filter(Boolean) as Activity[];
+  }, [activeSaved, activityCache]);
 
   if (items.length === 0) {
     return (

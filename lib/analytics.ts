@@ -64,7 +64,10 @@ export function trackActivitySaved(p: {
   category: string;
   matchPercent: number;
   matchTier: MatchTier;
+  /** @deprecated Kept so existing PostHog charts keep resolving. Use cityId. */
   city: string;
+  /** City the save was stamped with at write time (OAT-61). */
+  cityId: string;
 }): void {
   track("activity_saved", p);
 }

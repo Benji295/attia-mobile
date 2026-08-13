@@ -22,7 +22,7 @@ import ConfettiCannon from "react-native-confetti-cannon";
 import { rankActivities, getPersonalityProfile, matchReason } from "../../lib/scoring/recommendations";
 import { getActivities } from "../../lib/places/fetchActivities";
 import { photoUri, accentFor } from "../../lib/activities/display";
-import { computeXp, levelInfo, FULL_DAY_MIN_STOPS } from "../../lib/gamification";
+import { computeXp, levelInfo, firesItineraryBuilt, FULL_DAY_MIN_STOPS } from "../../lib/gamification";
 import { hapticLight, hapticSuccess, isHighMatch, prefersReducedMotion } from "../../lib/feedback";
 import {
   matchTier,
@@ -66,7 +66,7 @@ const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
 export default function Discover() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { result, saved, cityId, toggleSave, cacheActivities, markCityExplored } = useAttia();
+  const { result, saved, activeSaved, cityId, toggleSave, isSaved, cacheActivities } = useAttia();
   const [ci, setCi] = useState(0);
   const translateX = useSharedValue(0);
 
@@ -76,9 +76,9 @@ export default function Discover() {
   const [error, setError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
-  // Fetch live activities for the selected city (re-runs on city change + retry).
-  // Cache them so Saved/Itinerary resolve saved ids from the same set, and mark
-  // the city explored (City hopper badge).
+  // Fetch live activities for the active city (re-runs on city change + retry).
+  // Cache them so Saved/Itinerary resolve saved ids from the same set. Cities
+  // explored now derives from saves (OAT-61), so nothing is marked here.
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -89,7 +89,6 @@ export default function Discover() {
         if (!active) return;
         setData(list);
         cacheActivities(list);
-        markCityExplored(cityId);
         setLoading(false);
       })
       .catch(() => {
@@ -100,7 +99,7 @@ export default function Discover() {
     return () => {
       active = false;
     };
-  }, [cityId, reloadKey, cacheActivities, markCityExplored]);
+  }, [cityId, reloadKey, cacheActivities]);
 
   const ranked = useMemo(
     () => (result && data ? rankActivities(data, cityId, result.scores, result) : []),
@@ -181,7 +180,11 @@ export default function Discover() {
     <>
       <View className="flex-row items-baseline justify-between">
         <Text className="text-2xl font-medium text-neutral-900">Discover</Text>
-        {saved.length > 0 && <Text className="text-xs text-neutral-400">{saved.length} saved</Text>}
+        {/* Scoped to the deck you're browsing — a DC count over a Miami deck was
+            the same lie the Itinerary header told. */}
+        {activeSaved.length > 0 && (
+          <Text className="text-xs text-neutral-400">{activeSaved.length} saved</Text>
+        )}
       </View>
       <View className="mt-3 mb-4">
         <CitySelector />
@@ -253,21 +256,28 @@ export default function Discover() {
     if (ranItem) {
       const id = ranItem.activity.id;
       if (save) {
-        const wasSaved = saved.includes(id);
-        toggleSave(id);
+        const wasSaved = isSaved(id);
+        toggleSave(id); // stamps the active city at write time
         // Celebrate + track only an actual ADD (not an un-save of a re-encounter).
         if (!wasSaved) {
+          // GLOBAL — XP, level and the Collector badge are a cumulative per-user
+          // score, and the celebration escalates on the same count so a toast can
+          // never contradict what Profile shows.
           const beforeCount = saved.length;
+          // PER-CITY — a plan lives in one city (see firesItineraryBuilt).
+          const beforeInCity = activeSaved.length;
           celebrateSave(ranItem.match, beforeCount);
           trackActivitySaved({
             activityId: id,
             category: ranItem.activity.category,
             matchPercent: ranItem.match,
             matchTier: matchTier(ranItem.match, ranked.map((r) => r.match)),
-            city: cityId
+            city: cityId,
+            cityId
           });
-          // itinerary_built once, on the 2 -> 3 transition (a multi-stop plan).
-          if (beforeCount === 2) trackItineraryBuilt(beforeCount + 1);
+          // itinerary_built once, on this city's 2 -> 3 transition. Three saves
+          // spread across three cities is not a plan and must not fire it.
+          if (firesItineraryBuilt(beforeInCity)) trackItineraryBuilt(beforeInCity + 1);
         }
       } else {
         trackActivitySkipped({ activityId: id, matchPercent: ranItem.match });
@@ -439,7 +449,7 @@ export default function Discover() {
             >
               <Animated.View style={heartStyle}>
                 <Ionicons
-                  name={saved.includes(ranItem.activity.id) ? "heart" : "heart-outline"}
+                  name={isSaved(ranItem.activity.id) ? "heart" : "heart-outline"}
                   size={26}
                   color="#171717"
                 />

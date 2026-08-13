@@ -18,7 +18,7 @@ const BRAND = "#FB923C"; // sunset warmth, from the locked palette
 export default function Home() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { result, saved, cityId, cacheActivities, markCityExplored } = useAttia();
+  const { result, activeSaved, cityId, cacheActivities } = useAttia();
   const cityName = cityLabel(cityId);
 
   const [data, setData] = useState<Activity[] | null>(null);
@@ -41,7 +41,6 @@ export default function Home() {
         if (!active) return;
         setData(list);
         cacheActivities(list);
-        markCityExplored(cityId);
         setLoading(false);
       })
       .catch(() => {
@@ -52,7 +51,7 @@ export default function Home() {
     return () => {
       active = false;
     };
-  }, [result, cityId, reloadKey, cacheActivities, markCityExplored]);
+  }, [result, cityId, reloadKey, cacheActivities]);
 
   const ranked = useMemo(
     () => (result && data ? rankActivities(data, cityId, result.scores, result) : []),
@@ -238,8 +237,8 @@ export default function Home() {
           </>
         )}
 
-        {/* Resume row — only with real saved stops. Tap → Itinerary. */}
-        {saved.length > 0 && (
+        {/* Resume row — only with real saved stops IN THIS CITY. Tap → Itinerary. */}
+        {activeSaved.length > 0 && (
           <Pressable
             onPress={() => router.navigate("/itinerary")}
             className="flex-row items-center border border-neutral-200 rounded-2xl px-4 py-4 mt-7 active:bg-neutral-50"
@@ -253,7 +252,8 @@ export default function Home() {
             <View className="flex-1">
               <Text className="text-base font-medium text-neutral-900">Pick up your itinerary</Text>
               <Text className="text-xs text-neutral-400 mt-0.5">
-                {saved.length} saved {saved.length === 1 ? "stop" : "stops"} in {cityName}
+                {activeSaved.length} saved {activeSaved.length === 1 ? "stop" : "stops"} in{" "}
+                {cityName}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#A3A3A3" />

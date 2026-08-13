@@ -378,6 +378,12 @@ export function AttiaProvider({ children }: { children: ReactNode }) {
   const reset = () => {
     setResult(null);
     setSaved([]);
+    // The floor is monotonic through normal use — un-saving never shrinks it —
+    // but Reset is a deliberate wipe, not normal use. Without this, a tester who
+    // retakes the quiz keeps City hopper on a profile with zero saves. The
+    // save-city effect below re-runs with an empty `saved` and leaves it empty,
+    // and the write-through persists the cleared floor.
+    setCitiesExploredFloor([]);
   };
 
   return (

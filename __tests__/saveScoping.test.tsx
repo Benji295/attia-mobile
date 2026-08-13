@@ -20,6 +20,7 @@ import { mountStore, write, type Store } from "./helpers";
 
 const DC = "washington-dc";
 const MIAMI = "miami";
+const STORAGE_KEY = "attia:v1";
 
 // Real ids from data/activities.ts — no invented places. Miami/NYC activities are
 // fetched live from the Places proxy and have no offline fixture, so the Miami
@@ -244,6 +245,52 @@ describe("XP, level and cities-explored stay global (Snapchat-score model)", () 
     const second = await mountStore();
     expect(second.store().saved).toEqual([]);
     expect(second.store().citiesExplored).toEqual([DC, MIAMI]);
+  });
+
+  /**
+   * The floor is monotonic through NORMAL use (the two tests above), but Reset on
+   * Profile is a deliberate wipe. Those tests pass whether or not reset() clears
+   * the floor, which is exactly why this needs its own case: it is the guard
+   * against someone later "simplifying" the floor and quietly breaking the wipe.
+   */
+  it("reset() wipes the earned cities, and the wipe survives a relaunch", async () => {
+    const first = await mountStore();
+
+    write(() => first.store().toggleSave(DC_ACTIVITY));
+    write(() => first.store().setCity(MIAMI));
+    write(() => first.store().toggleSave(MIAMI_PLACE));
+    expect(first.store().citiesExplored).toEqual([DC, MIAMI]);
+    expect(first.store().citiesExplored.length).toBeGreaterThanOrEqual(CITY_HOPPER_MIN_CITIES);
+
+    write(() => first.store().reset());
+
+    // Fresh profile: no quiz result, no saves, and no cities to show for it.
+    expect(first.store().result).toBeNull();
+    expect(first.store().saved).toEqual([]);
+    expect(first.store().citiesExplored).toEqual([]);
+    expect(first.store().citiesExplored.length).toBeLessThan(CITY_HOPPER_MIN_CITIES);
+
+    // The write-through must persist the CLEARED floor, not the earned one.
+    const persisted = JSON.parse((await AsyncStorage.getItem(STORAGE_KEY)) as string);
+    expect(persisted.citiesExplored).toEqual([]);
+    first.unmount();
+
+    // ...so it cannot come back on the next launch.
+    const second = await mountStore();
+    expect(second.store().citiesExplored).toEqual([]);
+    expect(second.store().saved).toEqual([]);
+  });
+
+  it("saving again after a reset starts the count from scratch", async () => {
+    const { store } = await mountStore();
+
+    write(() => store().toggleSave(DC_ACTIVITY));
+    write(() => store().setCity(MIAMI));
+    write(() => store().toggleSave(MIAMI_PLACE));
+    write(() => store().reset());
+
+    write(() => store().toggleSave(MIAMI_PLACE_2)); // still on Miami
+    expect(store().citiesExplored).toEqual([MIAMI]); // not [DC, MIAMI]
   });
 
   it("streak is untouched by city switching", async () => {

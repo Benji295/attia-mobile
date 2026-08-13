@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+body{margin:0;background:#E8E4DE;font-family:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif}
+a{color:#FF9F45;text-decoration:none}a:hover{color:#FFC38A}
+.sb::-webkit-scrollbar{width:0;height:0}
+@keyframes attia-warm{0%,70%,100%{color:#E9E4DC}18%,52%{color:#FF9F45}}
+@keyframes attia-rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</helmet>
+
+<div style="min-height:100vh;padding:48px 56px 72px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:34px">
+
+<div style="width:100%;max-width:920px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+<span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;background:#0D0D0F;color:#FF9F45;font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.06em">MERGED v1</span>
+<span style="font:600 13px/1 'Bricolage Grotesque',sans-serif;color:#1F1D1A">ATTIA — attia-mobile logic + web depth, vision-mockup dark</span>
+</div>
+<p style="margin:0;max-width:680px;font:400 13px/1.65 'Bricolage Grotesque',sans-serif;color:rgba(31,29,26,.62);text-wrap:pretty">Trip-scoped (OAT-63), hybrid quiz (OAT-53 + OAT-54), reveal upgrade (OAT-67), place detail (OAT-44), tier-first labels (OAT-46), per-day itinerary with quick-add (OAT-21, OAT-69), city-scoped saves (OAT-61), personalized greeting (OAT-73). Bricolage Grotesque, archetype accents, brand orange brightened to #FF9F45 for dark.</p>
+</div>
+
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="height:100%;display:flex;flex-direction:column;background:#0D0D0F;color:#F4F1EC;font-family:'Bricolage Grotesque',ui-sans-serif,system-ui,sans-serif;position:relative;overflow:hidden">
+
+<div class="sb" style="flex:1;overflow-y:auto;overflow-x:hidden">
+
+<sc-if value="{{ isWelcome }}" hint-placeholder-val="{{ true }}">
+<div style="min-height:100%;box-sizing:border-box;padding:64px 22px 30px;display:flex;flex-direction:column">
+<div style="position:relative;height:196px;border-radius:26px;overflow:hidden;border:1px solid #24242B">
+<image-slot id="attia-welcome-hero" shape="rect" placeholder="Drop the welcome image — OAT-71"></image-slot>
+<div style="position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(13,13,15,.15) 0%,rgba(13,13,15,.55) 60%,#0D0D0F 100%)"></div>
+</div>
+<div style="margin-top:-34px;position:relative;display:flex;flex-direction:column;align-items:center;text-align:center">
+<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#FF9F45" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path></svg>
+<h1 style="margin:14px 0 0;font:500 56px/1 'Bricolage Grotesque',sans-serif;letter-spacing:.02em">ATTIA</h1>
+<p style="margin:17px 0 0;font:500 16px/1.55 'Bricolage Grotesque',sans-serif;letter-spacing:.26em;text-transform:uppercase;color:#E9E4DC">
+<span style="display:block;animation:attia-rise .9s cubic-bezier(.2,.7,.3,1) both">Authentic <span style="color:#FF9F45;animation:attia-warm 7s ease-in-out infinite">Travel</span></span>
+<span style="display:block;animation:attia-rise .9s cubic-bezier(.2,.7,.3,1) .12s both">Tailored <span style="color:#FF9F45;animation:attia-warm 7s ease-in-out .35s infinite">In Advance</span></span>
+</p>
+<p style="margin:13px 0 0;font:400 13px/1.6 'Bricolage Grotesque',sans-serif;color:#7C7986"><span style="font-style:italic;color:#97949E">Atiyah</span> — gift</p>
+<p style="margin:18px 0 0;font:400 17px/1.4 'Bricolage Grotesque',sans-serif;color:#FF9F45">Your ATTIA awaits.</p>
+</div>
+<div style="flex:1"></div>
+<button type="button" onClick="{{ goQuiz }}" style="margin-top:28px;width:100%;border:0;cursor:pointer;border-radius:18px;background:#F4F1EC;color:#0D0D0F;padding:17px;font:500 15.5px/1 'Bricolage Grotesque',sans-serif" style-hover="background:#fff">Take the quiz</button>
+<button type="button" onClick="{{ goHow }}" style="margin-top:14px;width:100%;border:0;background:none;cursor:pointer;color:#7C7986;font:400 13.5px/1 'Bricolage Grotesque',sans-serif" style-hover="color:#F4F1EC">How it works</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ isHow }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:100%;box-sizing:border-box;padding:64px 22px 30px;display:flex;flex-direction:column">
+<button type="button" onClick="{{ goWelcome }}" style="align-self:flex-start;width:40px;height:40px;border:1px solid #24242B;background:#16161A;cursor:pointer;border-radius:999px;display:inline-flex;align-items:center;justify-content:center" style-hover="background:#1D1D22">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#F4F1EC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg>
+</button>
+<h1 style="margin:26px 0 0;font:500 34px/1.12 'Bricolage Grotesque',sans-serif;letter-spacing:-.01em;text-wrap:pretty">How ATTIA works</h1>
+<div style="display:grid;gap:12px;margin-top:26px">
+<div style="border:1px solid #24242B;background:#16161A;border-radius:22px;padding:20px">
+<p style="margin:0;font:600 10px/1 'Bricolage Grotesque',sans-serif;letter-spacing:.22em;color:#FF9F45">01</p>
+<p style="margin:11px 0 0;font:500 17px/1.25 'Bricolage Grotesque',sans-serif">Answer 15 quick questions</p>
+<p style="margin:8px 0 0;font:400 13px/1.6 'Bricolage Grotesque',sans-serif;color:#97949E">Tap the one that fits. If two fit equally, rank up to three — the scoring handles blends.</p>
+</div>
+<div style="border:1px solid #24242B;background:#16161A;border-radius:22px;padding:20px">
+<p style="margin:0;font:600 10px/1 'Bricolage Grotesque',sans-serif;letter-spacing:.22em;color:#FF9F45">02</p>
+<p style="margin:11px 0 0;font:500 17px/1.25 'Bricolage Grotesque',sans-serif">Meet your archetype</p>
+<p style="margin:8px 0 0;font:400 13px/1.6 'Bricolage Grotesque',sans-serif;color:#97949E">One of eight, with the secondary traits that shade it. Every recommendation traces back to this.</p>
+</div>
+<div style="border:1px solid #24242B;background:#16161A;border-radius:22px;padding:20px">
+<p style="margin:0;font:600 10px/1 'Bricolage Grotesque',sans-serif;letter-spacing:.22em;color:#FF9F45">03</p>
+<p style="margin:11px 0 0;font:500 17px/1.25 'Bricolage Grotesque',sans-serif">Set your trip, then build the days</p>
+<p style="margin:8px 0 0;font:400 13px/1.6 'Bricolage Grotesque',sans-serif;color:#97949E">Tell us where and when. Everything you see is scoped to that trip — saves included.</p>
+</div>
+</div>
+<div style="flex:1"></div>
+<button type="button" onClick="{{ goQuiz }}" style="margin-top:26px;width:100%;border:0;cursor:pointer;border-radius:18px;background:#F4F1EC;color:#0D0D0F;padding:17px;font:500 15.5px/1 'Bricolage Grotesque',sans-serif" style-hover="background:#fff">Start the quiz</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ isQuiz }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:100%;box-sizing:border-box;padding:64px 22px 26px;display:flex;flex-direction:column">
+<div style="display:flex;align-items:center;gap:13px">
+<button type="button" onClick="{{ quizBack }}" style="flex:none;width:40px;height:40px;border:1px solid #24242B;background:#16161A;cursor:pointer;border-radius:999px;display:inline-flex;align-items:center;justify-content:center" style-hover="background:#1D1D22">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#F4F1EC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg>
+</button>
+<div style="flex:1;height:6px;border-radius:999px;background:#1D1D22;overflow:hidden">
+<div style="{{ progressStyle }}"></div>
+</div>
+<span style="flex:none;font:500 12px/1 'Bricolage Grotesque',sans-serif;color:#7C7986">{{ qCounter }}</span>
+</div>
+
+<h1 style="margin:32px 0 0;font:500 29px/1.2 'Bricolage Grotesque',sans-serif;letter-spacing:-.015em;text-wrap:pretty">{{ prompt }}</h1>
+<p style="margin:11px 0 0;font:400 13.5px/1.5 'Bricolage Grotesque',sans-serif;color:#97949E">{{ helperLine }}</p>
+
+<div style="display:grid;gap:8px;margin-top:22px">
+<sc-for list="{{ options }}" as="opt" hint-placeholder-count="8">
+<button type="button" onClick="{{ opt.pick }}" style="{{ opt.style }}" style-hover="border-color:#4A4A55">
+<span style="{{ opt.rankStyle }}">{{ opt.rank }}</span>
+<span style="flex:1;text-align:left">{{ opt.label }}</span>
+</button>
+</sc-for>
+</div>
+
+<div style="display:flex;align-items:center;gap:10px;margin-top:18px">
+<button type="button" onClick="{{ toggleMulti }}" style="{{ multiBtnStyle }}" style-hover="border-color:#4A4A55">{{ multiLabel }}</button>
+<sc-if value="{{ canContinue }}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{ continueQuiz }}" style="flex:1;border:0;cursor:pointer;border-radius:14px;background:#F4F1EC;color:#0D0D0F;padding:13px;font:500 13.5px/1 'Bricolage Grotesque',sans-serif" style-hover="background:#fff">Continue</button>
+</sc-if>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isReveal }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:100%;box-sizing:border-box;padding:64px 22px 30px">
+<div style="{{ revealGlowStyle }}"></div>
+<p style="margin:0;font:600 10px/1 'Bricolage Grotesque',sans-serif;letter-spacing:.24em;color:#7C7986;text-transform:uppercase">You are</p>
+<h1 style="{{ revealNameStyle }}">{{ dominantName }}</h1>
+<p style="margin:16px 0 0;font:400 16px/1.6 'Bricolage Grotesque',sans-serif;color:#C9C5CE;text-wrap:pretty">{{ dominantSummary }}</p>
+
+<div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:18px">
+<sc-for list="{{ dominantTraits }}" as="t" hint-placeholder-count="3">
+<span style="{{ t.style }}">{{ t.label }}</span>
+</sc-for>
+</div>
+
+<div style="margin-top:26px;border:1px solid #24242B;background:#16161A;border-radius:22px;padding:20px">
+<p style="margin:0;font:600 10px/1 'Bricolage Grotesque',sans-serif;letter-spacing:.2em;color:#7C7986;text-transform:uppercase">Your spectrum</p>
+<div style="display:grid;gap:11px;margin-top:16px">
+<sc-for list="{{ spectrum }}" as="s" hint-placeholder-count="8">
+<div>
+<div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+<span style="{{ s.labelStyle }}">{{ s.name }}</span>
+<span style="font:500 11px/1 'Bricolage Grotesque',sans-serif;color:#6E6B78">{{ s.pct }}</span>
+</div>
+<div style="margin-top:6px;height:5px;border-radius:999px;background:#1D1D22;overflow:hidden">
+<div style="{{ s.barStyle }}"></div>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="margin-top:12px;border:1px solid #24242B;background:#16161A;border-radius:22px;padding:20px">
+<p style="margin:0;font:400 13.5px/1.65 'Bricolage Grotesque',sans-serif;color:#97949E">{{ dominantCityVibe }}</p>
+</div>
+
+<button type="button" onClick="{{ goTrip }}" style="margin-top:20px;width:100%;border:0;cursor:pointer;border-radius:18px;background:#F4F1EC;color:#0D0D0F;padding:17px;font:500 15.5px/1 'Bricolage Grotesque',sans-serif" style-hover="background:#fff">Plan a trip</button>
+<button type="button" onClick="{{ retake }}" style="margin-top:12px;width:100%;border:1px solid #24242B;background:none;cursor:pointer;border-radius:18px;color:#97949E;padding:15px;font:400 13.5px/1 'Bricolage Grotesque',sans-serif" style-hover="color:#F4F1EC;border-color:#4A4A55">Retake quiz</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ isTrip }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:100%;box-sizing:border-box;padding:64px 22px 30px;display:flex;flex-direction:column">
+<h1 style="margin:0;font:500 32px/1.15 'Bricolage Grotesque',sans-serif;letter-spacing:-.015em;text-wrap:pretty">Where are you going?</h1>
+<p style="margin:11px 0 0;font:400 13.5px/1.55 'Bricolage Grotesque',sans-serif;color:#97949E">Everything after this is scoped to the trip — picks, saves, and the days you build.</p>
+
+<p style="margin:30px 0 0;font:600 10px/1 'Bricolage Grotesque',sans-serif;letter-spacing:.2em;color:#7C7986;text-transform:uppercase">City</p>
+<div style="display:grid;gap:8px;margin-top:12px">
+<sc-for list="{{ tripCities }}" as="c" hint-placeholder-count="3">
+<button type="button" onClick="{{ c.pick }}" style="{{ c.style }}" style-hover="border-color:#4A4A55">
+<span style="font:500 16px/1.2 'Bricolage Grotesque',sans-serif">{{ c.name }}</span>
+<span style="font:400 12px/1.4 'Bricolage Grotesque',sans-serif;color:#7C7986">{{ c.note }}</span>
+</button>
+</sc-for>
+</div>
+
+<p style="margin:26px 0 0;font:600 10px/1 'Bricolage Grotesque',sans-serif;letter-spacing:.2em;color:#7C7986;text-transform:uppercase">When</p>
+<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+<sc-for list="{{ tripWhens }}" as="w" hint-placeholder-count="3">
+<button type="button" onClick="{{ w.pick }}" style="{{ w.style }}" style-hover="border-color:#4A4A55">{{ w.label }}</button>
+</sc-for>
+</div>
+
+<p style="margin:26px 0 0;font:600 10px/1 'Bricolage Grotesque',sans-serif;letter-spacing:.2em;color:#7C7986;text-transform:uppercase">How long</p>
+<div style="display:flex;gap:8px;margin-top:12px">
+<sc-for list="{{ tripLengths }}" as="l" hint-placeholder-count="2">
+<button type="button" onClick="{{ l.pick }}" style="{{ l.style }}" style-hover="border-color:#4A4A55">{{ l.label }}</button>
+</sc-for>
+</div>
+
+<p style="margin:26px 0 0;font:600 10px/1 'Bricolage Grotesque',sans-serif;letter-spacing:.2em;color:#7C7986;text-transform:uppercase">Your name</p>
+<input type="text" value="{{ nameValue }}" onInput="{{ setName }}" placeholder="So the app can greet you" style="margin-top:12px;width:100%;box-sizing:border-box;border:1px solid #24242B;background:#16161A;border-radius:16px;padding:15px 16px;color:#F4F1EC;font:400 15px/1 'Bricolage Grotesque',sans-serif;outline:none" style-focus="border-color:#FF9F45">
+
+<div style="flex:1"></div>
+<button type="button" onClick="{{ startTrip }}" style="{{ startTripStyle }}">{{ startTripLabel }}</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ isHome }}" hint-placeholder-val="{{ false }}">
+<div style="padding:64px 22px 26px">
+<p style="margin:0;font:400 14px/1 'Bricolage Grotesque',sans-serif;color:#7C7986">{{ greeting }}</p>
+<h1 style="{{ homeHeadlineStyle }}">{{ homeHeadline }}</h1>
+
+<div style="margin-top:22px;border:1px solid #24242B;background:#16161A;border-radius:24px;padding:20px">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px">
+<div>
+<p style="margin:0;font:600 10px/1 'Bricolage Grotesque',sans-serif;letter-spacing:.2em;color:#7C7986;text-transform:uppercase">Your trip</p>
+<p style="margin:10px 0 0;font:500 22px/1.15 'Bricolage Grotesque',sans-serif">{{ tripCityName }}</p>
+<p style="margin:6px 0 0;font:400 13px/1.4 'Bricolage Grotesque',sans-serif;color:#97949E">{{ tripLine }}</p>
+</div>
+<button type="button" onClick="{{ goTrip }}" style="flex:none;border:1px solid #24242B;background:none;cursor:pointer;border-radius:999px;padding:8px 13px;color:#97949E;font:400 11.5px/1 'Bricolage Grotesque',sans-serif" style-hover="color:#F4F1EC;border-color:#4A4A55">Change</button>
+</div>
+<div style="display:flex;gap:18px;margin-top:18px;padding-top:16px;border-top:1px solid #1D1D22">
+<div><p style="margin:0;font:500 19px/1 'Bricolage Grotesque',sans-serif">{{ savedCount }}</p><p style="margin:5px 0 0;font:400 11px/1 'Bricolage Grotesque',sans-serif;color:#7C7986">saved</p></div>
+<div><p style="margin:0;font:500 19px/1 'Bricolage Grotesque',sans-serif">{{ plannedCount }}</p><p style="margin:5px 0 0;font:400 11px/1 'Bricolage Grotesque',sans-serif;color:#7C7986">scheduled</p></div>
+<div><p style="margin:0;font:500 19px/1 'Bricolage Grotesque',sans-serif">{{ levelLabel }}</p><p style="margin:5px 0 0;font:400 11px/1 'Bricolage Grotesque',sans-serif;color:#7C7986">{{ xpToNext }}</p></div>
+</div>
+</div>
+
+<p style="margin:28px 0 0;font:600 10px/1 'Bricolage Grotesque',sans-serif;letter-spacing:.2em;color:#7C7986;text-transform:uppercase">Picked for you</p>
+<div style="display:grid;gap:10px;margin-top:13px">
+<sc-for list="{{ homePicks }}" as="a" hint-placeholder-count="3">
+<button type="button" onClick="{{ a.open }}" style="{{ a.cardStyle }}" style-hover="border-color:#4A4A55">
+<span style="{{ a.accentStyle }}"></span>
+<span style="flex:1;display:flex;flex-direction:column;gap:6px;text-align:left">
+<span style="{{ a.tierStyle }}">{{ a.tier }}</span>
+<span style="font:500 16px/1.25 'Bricolage Grotesque',sans-serif;color:#F4F1EC">{{ a.title }}</span>
+<span style="font:400 12px/1.4 'Bricolage Grotesque',sans-serif;color:#7C7986">{{ a.meta }}</span>
+</span>
+</button>
+</sc-for>
+</div>
+
+<sc-if value="{{ insiderLocked }}" hint-placeholder-val="{{ true }}">
+<div style="margin-top:22px;border:1px dashed #2F2F38;border-radius:20px;padding:18px;display:flex;gap:13px;align-items:flex-start">
+<svg style="flex:none;margin-top:1px" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#7C7986" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2.5"></rect><path d="M8 10V7a4 4 0 018 0v3"></path></svg>
+<div>
+<p style="margin:0;font:500 13.5px/1.3 'Bricolage Grotesque',sans-serif">Insider picks unlock at Lv 2</p>
+<p style="margin:6px 0 0;font:400 12px/1.55 'Bricolage Grotesque',sans-serif;color:#7C7986">{{ insiderHint }}</p>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ insiderOpen }}" hint-placeholder-val="{{ false }}">
+<div style="margin-top:22px;border:1px solid #3A2E1F;background:#1A140C;border-radius:20px;padding:18px">
+<p style="margin:0;font:600 10px/1 'Bricolage Grotesque',sans-serif;letter-spacing:.2em;color:#FF9F45;text-transform:uppercase">Insider pick unlocked</p>
+<p style="margin:11px 0 0;font:500 16px/1.25 'Bricolage Grotesque',sans-serif">{{ insiderTitle }}</p>
+<p style="margin:7px 0 0;font:400 12.5px/1.55 'Bricolage Grotesque',sans-serif;color:#B4ADA2">{{ insiderNote }}</p>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDiscover }}" hint-placeholder-val="{{ false }}">
+<div style="padding:64px 0 26px">
+<div style="padding:0 22px">
+<h1 style="margin:0;font:500 30px/1.15 'Bricolage Grotesque',sans-serif;letter-spacing:-.015em">Discover</h1>
+<p style="margin:9px 0 0;font:400 13px/1.4 'Bricolage Grotesque',sans-serif;color:#7C7986">{{ discoverSub }}</p>
+</div>
+
+<div class="sb" style="margin-top:18px;overflow-x:auto;padding:0 22px">
+<div style="display:flex;gap:8px;align-items:center;width:max-content">
+<sc-for list="{{ filterChips }}" as="f" hint-placeholder-count="10">
+<button type="button" onClick="{{ f.pick }}" style="{{ f.style }}" style-hover="border-color:#4A4A55">{{ f.label }}</button>
+</sc-for>
+</div>
+</div>
+
+<div style="display:grid;gap:11px;margin-top:18px;padding:0 22px">
+<sc-for list="{{ feed }}" as="a" hint-placeholder-count="6">
+<div style="border:1px solid #24242B;background:#16161A;border-radius:22px;overflow:hidden">
+<button type="button" onClick="{{ a.open }}" style="width:100%;border:0;background:none;cursor:pointer;padding:0;display:block;text-align:left">
+<span style="{{ a.stripeStyle }}"></span>
+<span style="display:block;padding:16px 17px 13px">
+<span style="{{ a.tierStyle }}">{{ a.tier }}</span>
+<span style="display:block;margin-top:10px;font:500 18px/1.22 'Bricolage Grotesque',sans-serif;color:#F4F1EC">{{ a.title }}</span>
+<span style="display:block;margin-top:7px;font:400 13px/1.5 'Bricolage Grotesque',sans-serif;color:#97949E">{{ a.blurb }}</span>
+<span style="display:block;margin-top:10px;font:400 11.5px/1 'Bricolage Grotesque',sans-serif;color:#6E6B78">{{ a.meta }}</span>
+</span>
+</button>
+<div style="display:flex;gap:7px;padding:0 17px 15px">
+<button type="button" onClick="{{ a.save }}" style="{{ a.saveStyle }}" style-hover="border-color:#4A4A55">{{ a.saveLabel }}</button>
+<button type="button" onClick="{{ a.quickAdd }}" style="flex:1;border:1px solid #24242B;background:none;cursor:pointer;border-radius:13px;padding:11px;color:#97949E;font:400 12.5px/1 'Bricolage Grotesque',sans-serif" style-hover="color:#F4F1EC;border-color:#4A4A55">{{ a.quickAddLabel }}</button>
+</div>
+</div>
+</sc-for>
+</div>
+
+<sc-if value="{{ feedEmpty }}" hint-placeholder-val="{{ false }}">
+<p style="margin:40px 22px 0;text-align:center;font:400 13px/1.6 'Bricolage Grotesque',sans-serif;color:#6E6B78">Nothing matches those filters. Loosen one.</p>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isSaved }}" hint-placeholder-val="{{ false }}">
+<div style="padding:64px 22px 26px">
+<h1 style="margin:0;font:500 30px/1.15 'Bricolage Grotesque',sans-serif;letter-spacing:-.015em">Saved</h1>
+<p style="margin:9px 0 0;font:400 13px/1.4 'Bricolage Grotesque',sans-serif;color:#7C7986">{{ savedSub }}</p>
+
+<div style="display:grid;gap:10px;margin-top:20px">
+<sc-for list="{{ savedList }}" as="a" hint-placeholder-count="3">
+<button type="button" onClick="{{ a.open }}" style="{{ a.cardStyle }}" style-hover="border-color:#4A4A55">
+<span style="{{ a.accentStyle }}"></span>
+<span style="flex:1;display:flex;flex-direction:column;gap:6px;text-align:left">
+<span style="font:500 16px/1.25 'Bricolage Grotesque',sans-serif;color:#F4F1EC">{{ a.title }}</span>
+<span style="font:400 12px/1.4 'Bricolage Grotesque',sans-serif;color:#7C7986">{{ a.meta }}</span>
+</span>
+</button>
+</sc-for>
+</div>
+
+<sc-if value="{{ savedEmpty }}" hint-placeholder-val="{{ true }}">
+<p style="margin:44px 0 0;text-align:center;font:400 13px/1.6 'Bricolage Grotesque',sans-serif;color:#6E6B78">Nothing saved for this trip yet.<br>Heart something in Discover.</p>
+</sc-if>
+
+<sc-if value="{{ hasOtherCitySaves }}" hint-placeholder-val="{{ false }}">
+<div style="margin-top:22px;border:1px solid #24242B;border-radius:18px;padding:15px 16px;display:flex;gap:11px;align-items:flex-start">
+<svg style="flex:none;margin-top:1px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C7986" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5M12 16h.01"></path></svg>
+<p style="margin:0;font:400 12.5px/1.55 'Bricolage Grotesque',sans-serif;color:#7C7986">{{ otherCitySavesLine }}</p>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isItinerary }}" hint-placeholder-val="{{ false }}">
+<div style="padding:64px 22px 26px">
+<h1 style="margin:0;font:500 30px/1.15 'Bricolage Grotesque',sans-serif;letter-spacing:-.015em">Itinerary</h1>
+<p style="margin:9px 0 0;font:400 13px/1.4 'Bricolage Grotesque',sans-serif;color:#7C7986">{{ itinerarySub }}</p>
+
+<div style="display:flex;gap:7px;margin-top:20px">
+<sc-for list="{{ dayTabs }}" as="d" hint-placeholder-count="3">
+<button type="button" onClick="{{ d.pick }}" style="{{ d.style }}" style-hover="border-color:#4A4A55">{{ d.label }}</button>
+</sc-for>
+</div>
+
+<sc-if value="{{ dayWarning }}" hint-placeholder-val="{{ false }}">
+<div style="margin-top:16px;border:1px solid #3A2A1F;background:#1A120C;border-radius:16px;padding:14px 15px;display:flex;gap:11px;align-items:flex-start">
+<svg style="flex:none;margin-top:1px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF9F45" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17h.01"></path></svg>
+<p style="margin:0;font:400 12.5px/1.5 'Bricolage Grotesque',sans-serif;color:#D8C7B4">{{ dayWarningText }}</p>
+</div>
+</sc-if>
+
+<div style="display:grid;gap:14px;margin-top:20px">
+<sc-for list="{{ slots }}" as="s" hint-placeholder-count="3">
+<div>
+<div style="display:flex;align-items:center;gap:10px">
+<span style="font:600 10px/1 'Bricolage Grotesque',sans-serif;letter-spacing:.2em;color:#7C7986;text-transform:uppercase">{{ s.label }}</span>
+<span style="font:400 11px/1 'Bricolage Grotesque',sans-serif;color:#4F4C58">{{ s.time }}</span>
+<span style="flex:1;height:1px;background:#1D1D22"></span>
+</div>
+<div style="display:grid;gap:8px;margin-top:11px">
+<sc-for list="{{ s.items }}" as="i" hint-placeholder-count="1">
+<div style="{{ i.cardStyle }}">
+<span style="{{ i.accentStyle }}"></span>
+<span style="flex:1;display:flex;flex-direction:column;gap:5px">
+<span style="font:500 15px/1.25 'Bricolage Grotesque',sans-serif;color:#F4F1EC">{{ i.title }}</span>
+<span style="font:400 11.5px/1.4 'Bricolage Grotesque',sans-serif;color:#7C7986">{{ i.meta }}</span>
+</span>
+<button type="button" onClick="{{ i.remove }}" style="flex:none;width:30px;height:30px;border:0;background:none;cursor:pointer;border-radius:999px;color:#5A5764;display:inline-flex;align-items:center;justify-content:center" style-hover="color:#F4F1EC">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+</button>
+</div>
+</sc-for>
+<sc-if value="{{ s.empty }}" hint-placeholder-val="{{ true }}">
+<div style="border:1px dashed #26262E;border-radius:16px;padding:15px;text-align:center;font:400 12px/1 'Bricolage Grotesque',sans-serif;color:#4F4C58">Open</div>
+</sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isProfile }}" hint-placeholder-val="{{ false }}">
+<div style="padding:64px 22px 26px">
+<div style="{{ profileHeroStyle }}">
+<p style="margin:0;font:600 10px/1 'Bricolage Grotesque',sans-serif;letter-spacing:.2em;color:#7C7986;text-transform:uppercase">Profile</p>
+<h1 style="margin:13px 0 0;font:500 28px/1.15 'Bricolage Grotesque',sans-serif">{{ profileName }}</h1>
+<p style="{{ profileArchetypeStyle }}">{{ dominantName }}</p>
+<div style="margin-top:20px">
+<div style="display:flex;align-items:baseline;justify-content:space-between">
+<span style="font:500 13px/1 'Bricolage Grotesque',sans-serif">{{ levelLabel }}</span>
+<span style="font:400 12px/1 'Bricolage Grotesque',sans-serif;color:#7C7986">{{ xpToNext }}</span>
+</div>
+<div style="margin-top:9px;height:6px;border-radius:999px;background:#1D1D22;overflow:hidden">
+<div style="{{ xpBarStyle }}"></div>
+</div>
+</div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+<sc-for list="{{ profileStats }}" as="s" hint-placeholder-count="4">
+<div style="border:1px solid #24242B;background:#16161A;border-radius:20px;padding:17px">
+<p style="margin:0;font:500 24px/1 'Bricolage Grotesque',sans-serif">{{ s.value }}</p>
+<p style="margin:8px 0 0;font:400 11.5px/1.3 'Bricolage Grotesque',sans-serif;color:#7C7986">{{ s.label }}</p>
+</div>
+</sc-for>
+</div>
+
+<p style="margin:28px 0 0;font:600 10px/1 'Bricolage Grotesque',sans-serif;letter-spacing:.2em;color:#7C7986;text-transform:uppercase">Badges</p>
+<div style="display:grid;gap:8px;margin-top:13px">
+<sc-for list="{{ badges }}" as="b" hint-placeholder-count="4">
+<div style="{{ b.style }}">
+<span style="flex:1;display:flex;flex-direction:column;gap:5px">
+<span style="{{ b.nameStyle }}">{{ b.name }}</span>
+<span style="font:400 11.5px/1.4 'Bricolage Grotesque',sans-serif;color:#6E6B78">{{ b.note }}</span>
+</span>
+<span style="{{ b.markStyle }}">{{ b.mark }}</span>
+</div>
+</sc-for>
+</div>
+
+<button type="button" onClick="{{ resetAll }}" style="margin-top:22px;width:100%;border:1px solid #24242B;background:none;cursor:pointer;border-radius:16px;color:#5A5764;padding:14px;font:400 12.5px/1 'Bricolage Grotesque',sans-serif" style-hover="color:#F4F1EC;border-color:#4A4A55">Reset everything</button>
+</div>
+</sc-if>
+
+</div>
+
+<sc-if value="{{ showTabs }}" hint-placeholder-val="{{ false }}">
+<div style="flex:none;border-top:1px solid #1D1D22;background:rgba(13,13,15,.96);backdrop-filter:blur(18px);padding:9px 8px 30px;display:grid;grid-template-columns:repeat(5,1fr);gap:2px">
+<button type="button" onClick="{{ tabHome }}" style="{{ tabHomeStyle }}">
+<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V21H3z"></path></svg>Home</button>
+<button type="button" onClick="{{ tabDiscover }}" style="{{ tabDiscoverStyle }}">
+<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M15.5 8.5l-2 5-5 2 2-5z"></path></svg>Discover</button>
+<button type="button" onClick="{{ tabSaved }}" style="{{ tabSavedStyle }}">
+<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5S3.5 15 3.5 9.2A4.2 4.2 0 0112 7a4.2 4.2 0 018.5 2.2c0 5.8-8.5 11.3-8.5 11.3z"></path></svg>Saved</button>
+<button type="button" onClick="{{ tabItinerary }}" style="{{ tabItineraryStyle }}">
+<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3 6.5v13L9 17l6 2.5 6-2.5v-13L15 6.5z"></path><path d="M9 4v13M15 6.5v13"></path></svg>Itinerary</button>
+<button type="button" onClick="{{ tabProfile }}" style="{{ tabProfileStyle }}">
+<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9.5" r="3.2"></circle><path d="M5.5 20a6.8 6.8 0 0113 0"></path></svg>Profile</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ detailOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;z-index:80;background:#0D0D0F;display:flex;flex-direction:column">
+<div class="sb" style="flex:1;overflow-y:auto">
+<div style="position:relative;height:250px">
+<image-slot id="attia-detail-photo" shape="rect" placeholder="Place photo — Google Places"></image-slot>
+<div style="position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(13,13,15,.35) 0%,rgba(13,13,15,.1) 45%,#0D0D0F 100%)"></div>
+<button type="button" onClick="{{ closeDetail }}" style="position:absolute;top:58px;left:18px;width:38px;height:38px;border:0;cursor:pointer;border-radius:999px;background:rgba(13,13,15,.72);color:#F4F1EC;display:inline-flex;align-items:center;justify-content:center;backdrop-filter:blur(10px)" style-hover="background:#16161A">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+</button>
+</div>
+
+<div style="padding:0 22px 26px;margin-top:-30px;position:relative">
+<span style="{{ detailTierStyle }}">{{ detailTier }}</span>
+<h1 style="margin:14px 0 0;font:500 30px/1.15 'Bricolage Grotesque',sans-serif;letter-spacing:-.015em;text-wrap:pretty">{{ detailTitle }}</h1>
+<p style="margin:11px 0 0;font:400 12.5px/1 'Bricolage Grotesque',sans-serif;color:#7C7986">{{ detailMeta }}</p>
+<p style="margin:18px 0 0;font:400 14.5px/1.65 'Bricolage Grotesque',sans-serif;color:#C9C5CE;text-wrap:pretty">{{ detailLong }}</p>
+
+<div style="{{ detailWhyStyle }}">
+<p style="margin:0;font:600 10px/1 'Bricolage Grotesque',sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#7C7986">Why it fits you</p>
+<p style="margin:11px 0 0;font:400 13.5px/1.6 'Bricolage Grotesque',sans-serif;color:#D6D2DA">{{ detailWhy }}</p>
+<p style="margin:12px 0 0;font:400 11.5px/1 'Bricolage Grotesque',sans-serif;color:#5A5764">{{ detailRaw }}</p>
+</div>
+
+<div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:18px">
+<sc-for list="{{ detailTags }}" as="t" hint-placeholder-count="3">
+<span style="border:1px solid #24242B;border-radius:999px;padding:7px 13px;font:400 11.5px/1 'Bricolage Grotesque',sans-serif;color:#97949E">{{ t.label }}</span>
+</sc-for>
+</div>
+
+<p style="margin:26px 0 0;font:600 10px/1 'Bricolage Grotesque',sans-serif;letter-spacing:.2em;color:#7C7986;text-transform:uppercase">Add to a day</p>
+<div style="display:flex;gap:8px;margin-top:12px">
+<sc-for list="{{ detailDays }}" as="d" hint-placeholder-count="3">
+<button type="button" onClick="{{ d.add }}" style="{{ d.style }}" style-hover="border-color:#4A4A55">{{ d.label }}</button>
+</sc-for>
+</div>
+</div>
+</div>
+<div style="flex:none;padding:14px 22px 30px;border-top:1px solid #1D1D22;display:flex;gap:9px">
+<button type="button" onClick="{{ detailSave }}" style="{{ detailSaveStyle }}">{{ detailSaveLabel }}</button>
+</div>
+</div>
+</sc-if>
+
+</div>
+</x-import>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;1100&quot;,&quot;height&quot;:&quot;1100&quot;},&quot;startAt&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;welcome&quot;,&quot;how&quot;,&quot;quiz&quot;,&quot;reveal&quot;,&quot;trip&quot;,&quot;home&quot;,&quot;discover&quot;,&quot;saved&quot;,&quot;itinerary&quot;,&quot;profile&quot;],&quot;default&quot;:&quot;welcome&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Prototype&quot;},&quot;previewArchetype&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;auto&quot;,&quot;socialite&quot;,&quot;explorer&quot;,&quot;connoisseur&quot;,&quot;connector&quot;,&quot;culture-vulture&quot;,&quot;epicurean&quot;,&quot;adrenaline-junkie&quot;,&quot;savvy-traveler&quot;],&quot;default&quot;:&quot;auto&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Prototype&quot;},&quot;showRawPercent&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Prototype&quot;}}">
+const P = [
+  {id:"socialite",name:"The Socialite",short:"Socialite",summary:"You move through cities with momentum, sparkle, and an instinct for the places people talk about the next day.",accent:"#FB7185",traits:["Outgoing","Spontaneous","Magnetic"],cityVibe:"Best in neighborhoods with late-night energy, movement, and a social pulse."},
+  {id:"explorer",name:"The Explorer",short:"Explorer",summary:"You are most at home in places with texture, curiosity, and enough unpredictability to feel discovered instead of assigned.",accent:"#22D3EE",traits:["Curious","Independent","Adventurous"],cityVibe:"Best in walkable neighborhoods where one good turn leads to another."},
+  {id:"connoisseur",name:"The Connoisseur",short:"Connoisseur",summary:"You notice quality immediately and gravitate toward experiences with taste, precision, and a point of view worth dressing for.",accent:"#A78BFA",traits:["Intentional","Discerning","Stylish"],cityVibe:"Best in polished corners of the city where detail and atmosphere matter."},
+  {id:"connector",name:"The Connector",short:"Connector",summary:"You build your favorite memories around people, warmth, and experiences that leave everyone with more to talk about on the walk home.",accent:"#2DD4BF",traits:["Warm","Thoughtful","Community-minded"],cityVibe:"Best in welcoming places that feel easy to settle into together."},
+  {id:"culture-vulture",name:"The Culture Vulture",short:"Culture Vulture",summary:"You want cities to feel alive with art, ideas, and local expression, and you are drawn to places that say something beyond the surface.",accent:"#C084FC",traits:["Creative","Observant","Expressive"],cityVibe:"Best in neighborhoods where the city\u2019s creative identity is impossible to miss."},
+  {id:"epicurean",name:"The Epicurean",short:"Epicurean",summary:"You remember cities through flavor, lighting, service, and the way a room makes the whole night feel slower and richer.",accent:"#FBBF24",traits:["Sensory","Relaxed","Pleasure-seeking"],cityVibe:"Best in neighborhoods with strong kitchens, layered atmosphere, and room to linger."},
+  {id:"adrenaline-junkie",name:"The Adrenaline Junkie",short:"Adrenaline Junkie",summary:"You are most drawn to plans that feel active, vivid, and slightly hard to explain without a grin at the end of the story.",accent:"#F87171",traits:["Bold","Fearless","Energetic"],cityVibe:"Best in cities that let you trade sitting still for movement."},
+  {id:"savvy-traveler",name:"The Savvy Traveler",short:"Savvy Traveler",summary:"You like experiences that earn their place in the day, with strong payoff, smooth pacing, and enough polish to feel worth the effort.",accent:"#38BDF8",traits:["Efficient","Strategic","Polished"],cityVibe:"Best in neighborhoods where great experiences sit close together and the day flows easily."}
+];
+const IDS = P.map(p => p.id);
+const prof = id => P.find(p => p.id === id) || P[0];
+
+const CITIES = [
+  {id:"washington-dc",name:"Washington DC",note:"Monuments, markets, and a deeper cultural pulse than most guess."},
+  {id:"new-york",name:"New York",note:"Big energy, hidden gems, and all-night momentum."},
+  {id:"miami",name:"Miami",note:"Sunset color, bold flavor, and late-night sparkle."}
+];
+
+function sc(o){ const s={}; IDS.forEach(id => { s[id] = o[id] || 8; }); return s; }
+const A = [
+  {id:"dc-anacostia-kayak",title:"Sunset kayak on the Anacostia",category:"Water Activities",city:"washington-dc",hood:"Navy Yard",price:"$$",vibe:"High-Energy",setting:"Outdoors",when:"Day",slot:"Evening",short:"Paddle the river as the skyline goes gold.",long:"A guided sunset paddle from Navy Yard \u2014 open water, a little burn in the arms, and the city lighting up behind you.",tags:["outdoors","active","water"],s:sc({socialite:22,explorer:74,connoisseur:10,connector:24,"culture-vulture":12,epicurean:14,"adrenaline-junkie":96,"savvy-traveler":30})},
+  {id:"dc-speakeasy-tasting",title:"Hidden speakeasy tasting",category:"Wine Bars",city:"washington-dc",hood:"Shaw",price:"$$$",vibe:"Curated",setting:"Indoors",when:"Night",slot:"Evening",short:"An unmarked door and a flight worth finding.",long:"Behind a Shaw storefront, a bartender-led tasting flight built around small-batch spirits and serious technique.",tags:["drinks","intimate","craft"],s:sc({socialite:44,explorer:26,connoisseur:80,connector:34,"culture-vulture":22,epicurean:94,"adrenaline-junkie":10,"savvy-traveler":30})},
+  {id:"dc-hirshhorn-after-hours",title:"After-hours at the Hirshhorn",category:"Art",city:"washington-dc",hood:"National Mall",price:"$",vibe:"Cultural",setting:"Indoors",when:"Night",slot:"Evening",short:"Modern art, after dark, minus the crowds.",long:"An evening run of the Hirshhorn's contemporary galleries \u2014 quiet rooms, bold work, and time to actually look.",tags:["culture","art","evening"],s:sc({socialite:30,explorer:40,connoisseur:62,connector:28,"culture-vulture":96,epicurean:18,"adrenaline-junkie":10,"savvy-traveler":34})},
+  {id:"dc-ustreet-rooftop",title:"U Street rooftop social",category:"Rooftops",city:"washington-dc",hood:"U Street",price:"$$",vibe:"Social",setting:"Outdoors",when:"Night",slot:"Evening",short:"A lively rooftop where the night builds itself.",long:"A buzzing U Street rooftop with a moving crowd, a good list, and the kind of energy you text people to come join.",tags:["nightlife","social","rooftop"],s:sc({socialite:96,explorer:26,connoisseur:28,connector:58,"culture-vulture":30,epicurean:38,"adrenaline-junkie":22,"savvy-traveler":24})},
+  {id:"dc-chefs-counter",title:"Chef's counter tasting menu",category:"Dining",city:"washington-dc",hood:"Penn Quarter",price:"$$$",vibe:"Curated",setting:"Indoors",when:"Night",slot:"Evening",short:"A seat at the pass for a precise, course-by-course menu.",long:"Front-row at the kitchen for a multi-course tasting \u2014 every plate considered, every detail intentional.",tags:["dining","craft","refined"],s:sc({socialite:30,explorer:18,connoisseur:95,connector:36,"culture-vulture":26,epicurean:82,"adrenaline-junkie":8,"savvy-traveler":40})},
+  {id:"dc-eastern-market-crawl",title:"Eastern Market food crawl",category:"Food Tours",city:"washington-dc",hood:"Capitol Hill",price:"$$",vibe:"Food-First",setting:"Indoors",when:"Day",slot:"Morning",short:"Graze the market stalls with a local lead.",long:"A morning crawl through Eastern Market \u2014 vendors, samples, and the side streets the line-skippers know.",tags:["food","market","local"],s:sc({socialite:40,explorer:66,connoisseur:38,connector:60,"culture-vulture":34,epicurean:88,"adrenaline-junkie":14,"savvy-traveler":44})},
+  {id:"dc-georgetown-paddle-bike",title:"Georgetown waterfront paddle + bike",category:"Outdoor Sports",city:"washington-dc",hood:"Georgetown",price:"$$",vibe:"Outdoorsy",setting:"Outdoors",when:"Day",slot:"Afternoon",short:"Paddle the Potomac, then ride the towpath.",long:"A half-day combo on the Georgetown waterfront \u2014 a paddle leg, then a towpath ride out toward the canal.",tags:["outdoors","active","explore"],s:sc({socialite:26,explorer:86,connoisseur:14,connector:30,"culture-vulture":16,epicurean:20,"adrenaline-junkie":78,"savvy-traveler":50})},
+  {id:"dc-supper-club",title:"Candlelit supper club, 12 seats",category:"Shared Tables",city:"washington-dc",hood:"Logan Circle",price:"$$$",vibe:"Relaxed",setting:"Indoors",when:"Night",slot:"Evening",short:"One long table, twelve seats, a slow evening.",long:"A hosted supper club for twelve \u2014 shared courses, real conversation, and the kind of night that lingers.",tags:["intimate","dinner","people"],s:sc({socialite:62,explorer:24,connoisseur:40,connector:95,"culture-vulture":30,epicurean:52,"adrenaline-junkie":8,"savvy-traveler":30})},
+  {id:"dc-monuments-smart-route",title:"Smart half-day monuments route",category:"City Guides",city:"washington-dc",hood:"National Mall",price:"$",vibe:"Curated",setting:"Outdoors",when:"Day",slot:"Morning",short:"Maximum monuments, minimum wasted steps.",long:"An optimized walking loop of the Mall's headline monuments \u2014 best light, fewest crowds, no backtracking.",tags:["efficient","sightseeing","walking"],s:sc({socialite:26,explorer:52,connoisseur:36,connector:30,"culture-vulture":48,epicurean:20,"adrenaline-junkie":14,"savvy-traveler":95})},
+  {id:"dc-gallery-opening-live-set",title:"Indie gallery opening + live set",category:"Performance",city:"washington-dc",hood:"Union Market",price:"$$",vibe:"Cultural",setting:"Indoors",when:"Night",slot:"Evening",short:"An opening night with a live set in the back room.",long:"A new-work opening near Union Market, paired with a live music set \u2014 the city's creative scene, mid-conversation.",tags:["culture","music","scene"],s:sc({socialite:54,explorer:38,connoisseur:56,connector:40,"culture-vulture":92,epicurean:28,"adrenaline-junkie":12,"savvy-traveler":26})},
+  {id:"ny-lower-east-crawl",title:"Lower East Side backstreet crawl",category:"Neighborhood Crawls",city:"new-york",hood:"Lower East Side",price:"$$",vibe:"Curated",setting:"Outdoors",when:"Day",slot:"Afternoon",short:"Six blocks, four doors most people walk past.",long:"A wandering route through the LES \u2014 record shops, a tenement bar, and the kind of storefront you only find on foot.",tags:["local","walking","finds"],s:sc({socialite:38,explorer:94,connoisseur:36,connector:34,"culture-vulture":58,epicurean:44,"adrenaline-junkie":18,"savvy-traveler":40})},
+  {id:"ny-omakase-counter",title:"Eight-seat omakase counter",category:"Dining",city:"new-york",hood:"West Village",price:"$$$",vibe:"Curated",setting:"Indoors",when:"Night",slot:"Evening",short:"Eight seats, one chef, no menu.",long:"A tiny West Village counter running a set omakase \u2014 sequenced, quiet, and built around whatever came in that morning.",tags:["dining","craft","intimate"],s:sc({socialite:26,explorer:30,connoisseur:96,connector:38,"culture-vulture":28,epicurean:90,"adrenaline-junkie":8,"savvy-traveler":44})},
+  {id:"ny-brooklyn-warehouse-set",title:"Brooklyn warehouse live set",category:"Live Music",city:"new-york",hood:"Bushwick",price:"$$",vibe:"High-Energy",setting:"Indoors",when:"Night",slot:"Evening",short:"A loud room in a building that used to make things.",long:"A warehouse show in Bushwick \u2014 local bill, late doors, and a crowd that came for the music rather than the photos.",tags:["music","nightlife","scene"],s:sc({socialite:88,explorer:52,connoisseur:30,connector:44,"culture-vulture":86,epicurean:22,"adrenaline-junkie":48,"savvy-traveler":20})},
+  {id:"ny-highline-chelsea-galleries",title:"High Line into the Chelsea galleries",category:"Art",city:"new-york",hood:"Chelsea",price:"$",vibe:"Cultural",setting:"Outdoors",when:"Day",slot:"Morning",short:"Walk the line, then work the gallery row.",long:"Up the High Line and down into Chelsea's gallery blocks \u2014 free shows, big rooms, and a route that reads the neighborhood.",tags:["culture","art","walking"],s:sc({socialite:28,explorer:60,connoisseur:64,connector:30,"culture-vulture":95,epicurean:20,"adrenaline-junkie":12,"savvy-traveler":56})},
+  {id:"ny-east-river-sail",title:"East River evening sail",category:"Water Activities",city:"new-york",hood:"Seaport",price:"$$",vibe:"Outdoorsy",setting:"Outdoors",when:"Day",slot:"Evening",short:"The skyline from the water, at the right hour.",long:"A two-hour sail out of the Seaport timed to sunset \u2014 open deck, hard wind, and Manhattan doing its trick.",tags:["outdoors","water","views"],s:sc({socialite:48,explorer:72,connoisseur:34,connector:52,"culture-vulture":22,epicurean:26,"adrenaline-junkie":74,"savvy-traveler":52})},
+  {id:"ny-harlem-supper",title:"Harlem supper and second set",category:"Shared Tables",city:"new-york",hood:"Harlem",price:"$$",vibe:"Relaxed",setting:"Indoors",when:"Night",slot:"Evening",short:"Dinner, then the late set upstairs.",long:"A long Harlem dinner that rolls into the second set at a jazz room a block away \u2014 shared plates, no rush.",tags:["dinner","music","people"],s:sc({socialite:58,explorer:40,connoisseur:44,connector:92,"culture-vulture":70,epicurean:66,"adrenaline-junkie":10,"savvy-traveler":30})}
+];
+
+const Q = [
+  {id:"q1",prompt:"Your ideal Saturday starts with...",o:[["A rooftop brunch with the group chat",{socialite:3,connector:1}],["A walking route through a neighborhood you have not explored",{explorer:3,"savvy-traveler":1}],["Reservations at a beautifully designed cafe",{connoisseur:3,epicurean:1}],["Coffee and a deep catch-up with one close friend",{connector:3,socialite:1}],["A museum opening or local gallery show",{"culture-vulture":3,connoisseur:1}],["A long tasting menu or market crawl",{epicurean:3,explorer:1}],["An early workout or something with an adrenaline hit",{"adrenaline-junkie":3}],["A perfectly mapped day with zero wasted motion",{"savvy-traveler":3,connoisseur:1}]]},
+  {id:"q2",prompt:"When you choose what to do in a city, what matters most to you?",o:[["Where the fun crowd is heading",{socialite:3}],["Finding places tourists miss",{explorer:3}],["Taste and aesthetic quality",{connoisseur:3}],["Who you will share it with",{connector:3}],["Creative energy and local expression",{"culture-vulture":3}],["Food and sensory payoff",{epicurean:3}],["Challenge and excitement",{"adrenaline-junkie":3}],["A smooth, high-value plan",{"savvy-traveler":3}]]},
+  {id:"q3",prompt:"A perfect night out feels...",o:[["Buzzing, social, and a little chaotic",{socialite:3}],["Unexpected and full of turns",{explorer:3}],["Elegant and well curated",{connoisseur:3}],["Meaningful and full of conversation",{connector:3}],["Artful and culturally alive",{"culture-vulture":3}],["Delicious with amazing ambiance",{epicurean:3}],["Wild enough to make a story",{"adrenaline-junkie":3}],["Worth every dollar and every minute",{"savvy-traveler":3}]]},
+  {id:"q4",prompt:"Pick the souvenir you would most likely bring home.",o:[["Photos with everyone in them",{socialite:3}],["A weird local find from a side street shop",{explorer:3}],["A beautifully packaged specialty item",{connoisseur:3}],["Something thoughtful for someone else",{connector:3}],["A print, zine, or artist-made object",{"culture-vulture":3}],["A spice blend or food memory",{epicurean:3}],["A video from the moment you almost screamed",{"adrenaline-junkie":3}],["A compact keepsake that fits your carry-on",{"savvy-traveler":3}]]},
+  {id:"q5",prompt:"Your group has one free afternoon. You suggest...",o:[["A social spot where you can bounce between plans",{socialite:3}],["A neighborhood crawl with no strict schedule",{explorer:3}],["One exceptional experience done right",{connoisseur:3}],["Something everyone can enjoy together",{connector:3}],["A live show, exhibit, or performance",{"culture-vulture":3}],["A food-forward agenda",{epicurean:3}],["Kayaks, climbing, or speed",{"adrenaline-junkie":3}],["The route with the best effort-to-reward ratio",{"savvy-traveler":3}]]},
+  {id:"q6",prompt:"What makes a place worth recommending?",o:[["Everyone will have fun there",{socialite:2,connector:1}],["It feels discovered, not served to you",{explorer:3}],["You can feel the quality immediately",{connoisseur:3}],["It creates real moments between people",{connector:3}],["It says something about the city\u2019s identity",{"culture-vulture":3}],["It tastes or smells amazing",{epicurean:3}],["It gets your heart rate up",{"adrenaline-junkie":3}],["It is memorable and logistically smart",{"savvy-traveler":3}]]},
+  {id:"q7",prompt:"Your travel style is best described as...",o:[["You go where the energy is",{socialite:3}],["You wander first, plan second",{explorer:3}],["You edit for quality over quantity",{connoisseur:3}],["You centre people and connection",{connector:3}],["You want a creative pulse",{"culture-vulture":3}],["You travel through taste",{epicurean:3}],["You need movement and action",{"adrenaline-junkie":3}],["You optimize the whole trip",{"savvy-traveler":3}]]},
+  {id:"q8",prompt:"Which queue would you willingly stand in?",o:[["The hottest opening night in town",{socialite:3}],["A tucked-away local institution",{explorer:3}],["A chef or maker with serious craft",{connoisseur:3}],["A spot your favourite people would love",{connector:3}],["A limited-run cultural event",{"culture-vulture":3}],["The city\u2019s most talked-about bite",{epicurean:3}],["A launch point for something intense",{"adrenaline-junkie":3}],["Whatever is actually worth the wait",{"savvy-traveler":3}]]},
+  {id:"q9",prompt:"What is your ideal pace?",o:[["Fast, social, and packed",{socialite:3}],["Fluid with room to detour",{explorer:3}],["Measured, polished, and intentional",{connoisseur:3}],["Balanced around the group",{connector:3}],["Driven by what is happening culturally",{"culture-vulture":3}],["Slow enough to savour",{epicurean:3}],["High-intensity with breaks later",{"adrenaline-junkie":3}],["Efficient with premium moments",{"savvy-traveler":3}]]},
+  {id:"q10",prompt:"Which invitation gets an instant yes?",o:[["A new lounge with a lively crowd",{socialite:3}],["A secret spot someone just told you about",{explorer:3}],["A beautifully executed dining experience",{connoisseur:3}],["A low-pressure plan with people you love",{connector:3}],["A documentary screening and panel",{"culture-vulture":3}],["A chef-led tasting or wine flight",{epicurean:3}],["Jet skis, zip lines, or a race track",{"adrenaline-junkie":3}],["A reservation that makes the day click into place",{"savvy-traveler":3}]]},
+  {id:"q11",prompt:"You are happiest when an experience feels...",o:[["Electric",{socialite:3}],["Uncharted",{explorer:3}],["Exquisite",{connoisseur:3}],["Shared",{connector:3}],["Expressive",{"culture-vulture":3}],["Delicious",{epicurean:3}],["Intense",{"adrenaline-junkie":3}],["Worth it",{"savvy-traveler":3}]]},
+  {id:"q12",prompt:"Which role do you play in a group plan?",o:[["The vibe starter",{socialite:3}],["The scout",{explorer:3}],["The curator",{connoisseur:3}],["The glue",{connector:3}],["The tastemaker",{"culture-vulture":3}],["The food lead",{epicurean:3}],["The one pushing for the bold option",{"adrenaline-junkie":3}],["The planner",{"savvy-traveler":3}]]},
+  {id:"q13",prompt:"Pick the caption you would most likely post.",o:[["Best night with the best people",{socialite:3}],["Found this by accident and now I am obsessed",{explorer:3}],["Every detail was perfect",{connoisseur:3}],["Core memory",{connector:3}],["This city knows how to make art feel alive",{"culture-vulture":3}],["Still thinking about that meal",{epicurean:3}],["Would absolutely do that again",{"adrenaline-junkie":3}],["Perfect stop, zero regrets",{"savvy-traveler":3}]]},
+  {id:"q14",prompt:"What makes you trust a recommendation?",o:[["People are genuinely excited about it",{socialite:3}],["It feels off the beaten path",{explorer:3}],["It has a strong point of view",{connoisseur:3}],["It sounds great for your people",{connector:3}],["It is rooted in the local scene",{"culture-vulture":3}],["It promises a sensory payoff",{epicurean:3}],["It sounds thrilling",{"adrenaline-junkie":3}],["It clearly earns its place in the plan",{"savvy-traveler":3}]]},
+  {id:"q15",prompt:"Which ending feels most satisfying?",o:[["One more round because the night is still alive",{socialite:3}],["A final detour just to see what happens",{explorer:3}],["A last perfect detail",{connoisseur:3}],["A conversation that lingers after",{connector:3}],["A moment that makes the city feel bigger",{"culture-vulture":3}],["Dessert and a slow walk home",{epicurean:3}],["That rush where you feel fully alive",{"adrenaline-junkie":3}],["Knowing the day landed exactly right",{"savvy-traveler":3}]]}
+];
+
+const RANK_W = [1, 0.6, 0.3];
+const SLOTS = [{label:"Morning",time:"10:00"},{label:"Afternoon",time:"13:30"},{label:"Evening",time:"19:00"}];
+const FOOD = ["Dining","Wine Bars","Food Tours","Shared Tables"];
+const KEY = "attia-merged-v1";
+
+const BG="#0D0D0F", SURF="#16161A", LINE="#24242B", TXT="#F4F1EC", MUT="#97949E", DIM="#7C7986", BRAND="#FF9F45";
+const CARD = "display:flex;gap:13px;align-items:stretch;width:100%;border:1px solid "+LINE+";background:"+SURF+";border-radius:20px;padding:15px 16px;cursor:pointer;text-align:left;";
+const PILL = "border-radius:999px;padding:9px 15px;cursor:pointer;font:400 12.5px/1 'Bricolage Grotesque',sans-serif;";
+
+function scoreOf(answers){
+  const s = {}; IDS.forEach(id => { s[id] = 0; });
+  Q.forEach(q => {
+    const picks = answers[q.id];
+    if (!picks) return;
+    picks.forEach((oi, r) => {
+      const w = q.o[oi][1], mult = RANK_W[r] || 0;
+      Object.keys(w).forEach(k => { s[k] += w[k] * mult; });
+    });
+  });
+  return s;
+}
+function resultOf(answers){
+  if (Object.keys(answers).length !== Q.length) return null;
+  const scores = scoreOf(answers);
+  const ranked = [...IDS].sort((a,b) => scores[b] - scores[a]);
+  return { dominant: ranked[0], secondary: ranked.slice(1,3), scores };
+}
+function matchPct(a, scores){
+  const total = IDS.reduce((n,id) => n + scores[id], 0) || 1;
+  const m = IDS.reduce((n,id) => n + (scores[id]/total) * a.s[id], 0);
+  return Math.max(52, Math.min(99, Math.round(m)));
+}
+function tierOf(m){
+  if (m >= 82) return "Top match";
+  if (m >= 72) return "Strong fit";
+  if (m >= 63) return "Good fit";
+  return "Worth a look";
+}
+function accentOf(a){
+  return prof(IDS.reduce((best,id) => a.s[id] > a.s[best] ? id : best, IDS[0])).accent;
+}
+
+class Component extends DCLogic {
+  state = {
+    screen: "welcome", tab: "home", answers: {}, multi: false, result: null,
+    name: "", trip: null, saved: [], plan: [], day: 1, detail: null, draft: [],
+    filters: { vibe:"All", budget:"All", setting:"All", when:"All" },
+    draftCity: "washington-dc", draftWhen: "This weekend", draftDays: 3
+  };
+
+  componentDidMount(){
+    let s = null;
+    try { s = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) {}
+    const next = {};
+    if (s && typeof s === "object") Object.assign(next, s);
+    const start = this.props.startAt;
+    if (start && start !== "welcome") {
+      if (["home","discover","saved","itinerary","profile"].indexOf(start) >= 0) {
+        next.screen = "app"; next.tab = start;
+        if (!next.result) next.result = resultOf(this.autoAnswers());
+        if (!next.trip) next.trip = { city:"washington-dc", when:"This weekend", days:3 };
+      } else next.screen = start;
+      if (start === "reveal" && !next.result) next.result = resultOf(this.autoAnswers());
+    }
+    this.setState(next);
+  }
+
+  autoAnswers(){
+    const a = {};
+    Q.forEach((q,i) => { a[q.id] = [i % 3 === 0 ? 1 : (i % 3 === 1 ? 4 : 5)]; });
+    return a;
+  }
+
+  save(patch){
+    this.setState(patch, () => {
+      const s = this.state;
+      try {
+        localStorage.setItem(KEY, JSON.stringify({
+          screen: s.screen === "quiz" ? "welcome" : s.screen, tab: s.tab,
+          answers: s.answers, result: s.result, name: s.name, trip: s.trip,
+          saved: s.saved, plan: s.plan, day: s.day
+        }));
+      } catch (e) {}
+    });
+  }
+
+  qIndex(){ return Math.min(Object.keys(this.state.answers).length, Q.length - 1); }
+
+  pick(oi){
+    const q = Q[this.qIndex()];
+    if (this.state.multi) {
+      const cur = this.state.draft;
+      const at = cur.indexOf(oi);
+      this.setState({ draft: at >= 0 ? cur.filter(x => x !== oi) : (cur.length < 3 ? cur.concat(oi) : cur) });
+      return;
+    }
+    this.advance(Object.assign({}, this.state.answers, { [q.id]: [oi] }));
+  }
+
+  advance(answers){
+    const r = resultOf(answers);
+    if (r) this.save({ answers, result: r, screen: "reveal", multi: false, draft: [] });
+    else this.save({ answers, multi: false, draft: [] });
+  }
+
+  back(){
+    const i = this.qIndex();
+    if (i === 0) { this.save({ screen: "welcome" }); return; }
+    const answers = Object.assign({}, this.state.answers);
+    delete answers[Q[i-1].id];
+    this.save({ answers, multi: false, draft: [] });
+  }
+
+  addToDay(actId, day){
+    const a = A.find(x => x.id === actId);
+    const taken = this.state.plan.filter(p => p.day === day).map(p => p.slot);
+    let slot = a.slot;
+    if (taken.length >= 3) slot = a.slot;
+    const plan = this.state.plan.filter(p => !(p.day === day && p.id === actId)).concat([{ id: actId, day, slot, city: a.city }]);
+    this.save({ plan, detail: null, tab: "itinerary", day, screen: "app" });
+  }
+
+  toggleSave(actId){
+    const a = A.find(x => x.id === actId);
+    const has = this.state.saved.some(s => s.id === actId);
+    const saved = has ? this.state.saved.filter(s => s.id !== actId) : this.state.saved.concat([{ id: actId, city: a.city }]);
+    this.save({ saved });
+  }
+
+  renderVals(){
+    const st = this.state;
+    const forced = this.props.previewArchetype;
+    const res = st.result || { dominant: "explorer", secondary: ["culture-vulture","savvy-traveler"], scores: null };
+    const domId = (forced && forced !== "auto") ? forced : res.dominant;
+    const d = prof(domId);
+    const scores = res.scores || (() => { const o={}; IDS.forEach((id,i) => { o[id] = id===domId ? 40 : 10 - i*0.5; }); return o; })();
+    const tripCity = st.trip ? st.trip.city : st.draftCity;
+    const cityName = (CITIES.find(c => c.id === tripCity) || CITIES[0]).name;
+    const showRaw = this.props.showRawPercent === true;
+
+    const inCity = A.filter(a => a.city === tripCity);
+    const ranked = inCity.map(a => {
+      const m = matchPct(a, scores);
+      return { a, m, tier: tierOf(m), accent: accentOf(a) };
+    }).sort((x,y) => y.m - x.m);
+
+    const savedIds = st.saved.map(s => s.id);
+    const tierStyle = (t, accent) => "display:inline-block;border-radius:999px;padding:5px 10px;font:600 9.5px/1 'Bricolage Grotesque',sans-serif;letter-spacing:.12em;text-transform:uppercase;" +
+      (t === "Top match" ? "background:" + accent + "22;color:" + accent + ";" : "background:#1D1D22;color:" + DIM + ";");
+
+    const cardOf = (r) => ({
+      title: r.a.title,
+      meta: r.a.hood + " \u00b7 " + r.a.category + " \u00b7 " + r.a.price,
+      blurb: r.a.short,
+      tier: showRaw ? r.m + "% match" : r.tier,
+      tierStyle: tierStyle(r.tier, r.accent),
+      cardStyle: CARD,
+      accentStyle: "flex:none;width:3px;border-radius:999px;background:" + r.accent + ";",
+      stripeStyle: "display:block;height:3px;width:100%;background:" + r.accent + ";",
+      open: () => this.setState({ detail: r.a.id }),
+      save: () => this.toggleSave(r.a.id),
+      saveLabel: savedIds.indexOf(r.a.id) >= 0 ? "Saved" : "Save",
+      saveStyle: "flex:1;cursor:pointer;border-radius:13px;padding:11px;font:400 12.5px/1 'Bricolage Grotesque',sans-serif;" +
+        (savedIds.indexOf(r.a.id) >= 0 ? "border:1px solid " + BRAND + ";background:#1A140C;color:" + BRAND + ";" : "border:1px solid " + LINE + ";background:none;color:" + MUT + ";"),
+      quickAdd: () => this.addToDay(r.a.id, st.day),
+      quickAddLabel: "+ Day " + st.day
+    });
+
+    const q = Q[this.qIndex()];
+    const cur = st.multi ? st.draft : (st.answers[q.id] || []);
+    const answered = Object.keys(st.answers).length;
+
+    const filterDefs = [
+      { dim:"vibe", opts:["All","Social","Curated","Cultural","Food-First","Outdoorsy","Relaxed","High-Energy"] },
+      { dim:"budget", opts:["All","$","$$","$$$"] },
+      { dim:"setting", opts:["All","Indoors","Outdoors"] },
+      { dim:"when", opts:["All","Day","Night"] }
+    ];
+    const chips = [];
+    filterDefs.forEach(g => {
+      g.opts.forEach(o => {
+        if (o === "All" && st.filters[g.dim] === "All") return;
+        const on = st.filters[g.dim] === o;
+        chips.push({
+          label: o === "All" ? "\u00d7 " + g.dim : o,
+          style: PILL + (on ? "border:1px solid " + TXT + ";background:" + TXT + ";color:" + BG + ";" : "border:1px solid " + LINE + ";background:none;color:" + MUT + ";"),
+          pick: () => this.setState({ filters: Object.assign({}, st.filters, { [g.dim]: o }) })
+        });
+      });
+    });
+
+    const feed = ranked.filter(r =>
+      (st.filters.vibe === "All" || r.a.vibe === st.filters.vibe) &&
+      (st.filters.budget === "All" || r.a.price === st.filters.budget) &&
+      (st.filters.setting === "All" || r.a.setting === st.filters.setting) &&
+      (st.filters.when === "All" || r.a.when === st.filters.when)
+    ).map(cardOf);
+
+    const tripSaved = st.saved.filter(s => s.city === tripCity);
+    const otherSaved = st.saved.length - tripSaved.length;
+
+    const dayItems = st.plan.filter(p => p.day === st.day);
+    const slots = SLOTS.map(sl => {
+      const items = dayItems.filter(p => p.slot === sl.label).map(p => {
+        const a = A.find(x => x.id === p.id);
+        return {
+          title: a.title,
+          meta: a.hood + " \u00b7 " + a.category,
+          cardStyle: "display:flex;gap:13px;align-items:center;border:1px solid " + LINE + ";background:" + SURF + ";border-radius:18px;padding:14px 14px;",
+          accentStyle: "flex:none;width:3px;align-self:stretch;border-radius:999px;background:" + accentOf(a) + ";",
+          remove: () => this.save({ plan: st.plan.filter(x => !(x.day === p.day && x.id === p.id)) })
+        };
+      });
+      return { label: sl.label, time: sl.time, items, empty: items.length === 0 };
+    });
+    const eveningFood = dayItems.filter(p => {
+      const a = A.find(x => x.id === p.id);
+      return p.slot === "Evening" && FOOD.indexOf(a.category) >= 0;
+    }).length;
+
+    const savedCount = tripSaved.length;
+    const plannedCount = st.plan.length;
+    const xp = (st.result ? 50 : 0) + savedCount * 10 + (savedCount >= 3 ? 30 : 0) + plannedCount * 5;
+    const level = Math.floor(xp / 100) + 1;
+    const into = xp % 100;
+    const citiesTouched = Array.from(new Set(st.saved.map(s => s.city))).length;
+    const bestMatch = ranked.length ? ranked[0].m : 0;
+
+    const badgeRow = (name, note, on) => ({
+      name, note,
+      style: "display:flex;gap:13px;align-items:center;border:1px solid " + (on ? "#33323C" : LINE) + ";background:" + (on ? SURF : "transparent") + ";border-radius:18px;padding:15px 16px;",
+      nameStyle: "font:500 14px/1.25 'Bricolage Grotesque',sans-serif;color:" + (on ? TXT : "#5A5764") + ";",
+      mark: on ? "Earned" : "Locked",
+      markStyle: "flex:none;font:500 10.5px/1 'Bricolage Grotesque',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:" + (on ? BRAND : "#4F4C58") + ";"
+    });
+
+    const det = st.detail ? ranked.find(r => r.a.id === st.detail) : null;
+    const hour = new Date().getHours();
+    const greetWord = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
+    const who = st.name ? st.name.trim() : "";
+
+    const tabStyle = (n) => "border:0;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;padding:7px 2px;border-radius:14px;font:400 10px/1 'Bricolage Grotesque',sans-serif;color:" + (st.tab === n ? TXT : "#5A5764") + ";";
+    const goTab = (n) => () => this.save({ tab: n, screen: "app" });
+
+    return {
+      isWelcome: st.screen === "welcome",
+      isHow: st.screen === "how",
+      isQuiz: st.screen === "quiz",
+      isReveal: st.screen === "reveal",
+      isTrip: st.screen === "trip",
+      isHome: st.screen === "app" && st.tab === "home",
+      isDiscover: st.screen === "app" && st.tab === "discover",
+      isSaved: st.screen === "app" && st.tab === "saved",
+      isItinerary: st.screen === "app" && st.tab === "itinerary",
+      isProfile: st.screen === "app" && st.tab === "profile",
+      showTabs: st.screen === "app",
+
+      goWelcome: () => this.save({ screen: "welcome" }),
+      goHow: () => this.save({ screen: "how" }),
+      goQuiz: () => this.save({ screen: "quiz", answers: {}, multi: false }),
+      goTrip: () => this.save({ screen: "trip" }),
+      retake: () => this.save({ screen: "quiz", answers: {}, result: null, multi: false }),
+
+      progressStyle: "height:100%;border-radius:999px;background:" + d.accent + ";transition:width .3s;width:" + (((this.qIndex() + 1) / Q.length) * 100) + "%;",
+      qCounter: (this.qIndex() + 1) + "/" + Q.length,
+      prompt: q.prompt,
+      helperLine: st.multi ? "Rank up to three, best first." : "Choose one.",
+      options: q.o.map((o, i) => {
+        const at = cur.indexOf(i);
+        const on = at >= 0;
+        return {
+          label: o[0],
+          rank: st.multi && on ? String(at + 1) : "",
+          rankStyle: st.multi && on
+            ? "flex:none;width:20px;height:20px;border-radius:999px;background:" + d.accent + ";color:" + BG + ";font:600 11px/20px 'Bricolage Grotesque',sans-serif;text-align:center;"
+            : "display:none;",
+          style: "display:flex;gap:11px;align-items:center;width:100%;cursor:pointer;border-radius:16px;padding:15px 15px;font:400 14px/1.35 'Bricolage Grotesque',sans-serif;transition:border-color .18s;" +
+            (on ? "border:1px solid " + d.accent + ";background:#17161C;color:" + TXT + ";" : "border:1px solid " + LINE + ";background:" + SURF + ";color:#D6D2DA;"),
+          pick: () => this.pick(i)
+        };
+      }),
+      toggleMulti: () => this.setState({ multi: !st.multi, draft: [] }),
+      multiLabel: st.multi ? "One answer" : "Pick more",
+      multiBtnStyle: (st.multi ? "flex:none;" : "flex:1;") + "border:1px solid " + LINE + ";background:none;cursor:pointer;border-radius:14px;padding:13px 16px;color:" + MUT + ";font:400 12.5px/1 'Bricolage Grotesque',sans-serif;",
+      canContinue: st.multi && st.draft.length > 0,
+      continueQuiz: () => this.advance(Object.assign({}, st.answers, { [q.id]: st.draft })),
+      quizBack: () => this.back(),
+
+      revealGlowStyle: "position:absolute;top:0;left:0;right:0;height:300px;pointer-events:none;background:radial-gradient(120% 90% at 50% 0%," + d.accent + "26 0%,transparent 62%);",
+      revealNameStyle: "margin:14px 0 0;position:relative;font:500 42px/1.05 'Bricolage Grotesque',sans-serif;letter-spacing:-.02em;color:" + d.accent + ";",
+      dominantName: d.name,
+      dominantSummary: d.summary,
+      dominantCityVibe: d.cityVibe,
+      dominantTraits: d.traits.map(t => ({
+        label: t,
+        style: "border-radius:999px;padding:7px 13px;font:400 12px/1 'Bricolage Grotesque',sans-serif;border:1px solid " + d.accent + "44;color:" + d.accent + ";"
+      })),
+      spectrum: (() => {
+        const max = Math.max.apply(null, IDS.map(id => scores[id])) || 1;
+        return [...IDS].sort((a,b) => scores[b] - scores[a]).map(id => {
+          const p = prof(id), w = Math.round((scores[id] / max) * 100);
+          return {
+            name: p.short, pct: w + "%",
+            labelStyle: "font:" + (id === domId ? "500" : "400") + " 13px/1 'Bricolage Grotesque',sans-serif;color:" + (id === domId ? TXT : MUT) + ";",
+            barStyle: "height:100%;border-radius:999px;background:" + p.accent + (id === domId ? "" : "66") + ";width:" + w + "%;"
+          };
+        });
+      })(),
+
+      tripCities: CITIES.map(c => ({
+        name: c.name, note: c.note,
+        style: "display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;cursor:pointer;border-radius:18px;padding:16px;" +
+          (st.draftCity === c.id ? "border:1px solid " + d.accent + ";background:#17161C;" : "border:1px solid " + LINE + ";background:" + SURF + ";"),
+        pick: () => this.setState({ draftCity: c.id })
+      })),
+      tripWhens: ["This weekend","Next weekend","In a month"].map(w => ({
+        label: w,
+        style: PILL + (st.draftWhen === w ? "border:1px solid " + TXT + ";background:" + TXT + ";color:" + BG + ";" : "border:1px solid " + LINE + ";background:none;color:" + MUT + ";"),
+        pick: () => this.setState({ draftWhen: w })
+      })),
+      tripLengths: [2,3].map(n => ({
+        label: n + " days",
+        style: PILL + (st.draftDays === n ? "border:1px solid " + TXT + ";background:" + TXT + ";color:" + BG + ";" : "border:1px solid " + LINE + ";background:none;color:" + MUT + ";"),
+        pick: () => this.setState({ draftDays: n })
+      })),
+      nameValue: st.name,
+      setName: (e) => this.setState({ name: e.target.value }),
+      startTripLabel: "Start planning " + (CITIES.find(c => c.id === st.draftCity) || CITIES[0]).name,
+      startTripStyle: "margin-top:26px;width:100%;border:0;cursor:pointer;border-radius:18px;background:" + TXT + ";color:" + BG + ";padding:17px;font:500 15.5px/1 'Bricolage Grotesque',sans-serif;",
+      startTrip: () => this.save({ trip: { city: st.draftCity, when: st.draftWhen, days: st.draftDays }, screen: "app", tab: "home", day: 1 }),
+
+      greeting: who ? greetWord + ", " + who : greetWord,
+      homeHeadline: "Your " + d.short + " picks for " + cityName,
+      homeHeadlineStyle: "margin:9px 0 0;font:500 27px/1.18 'Bricolage Grotesque',sans-serif;letter-spacing:-.015em;text-wrap:pretty;color:" + TXT + ";",
+      tripCityName: cityName,
+      tripLine: (st.trip ? st.trip.when : "This weekend") + " \u00b7 " + (st.trip ? st.trip.days : 3) + " days",
+      savedCount: String(savedCount),
+      plannedCount: String(plannedCount),
+      levelLabel: "Lv " + level,
+      xpToNext: (100 - into) + " XP to next",
+      homePicks: ranked.slice(0, 3).map(cardOf),
+      insiderLocked: level < 2,
+      insiderOpen: level >= 2,
+      insiderHint: "Save and schedule places to earn XP. Lv 2 opens one hand-picked spot per city that never shows in the feed.",
+      insiderTitle: ranked.length > 3 ? ranked[3].a.title : "Off-feed pick",
+      insiderNote: "Hand-picked for " + d.short + "s, held back from the main feed.",
+
+      discoverSub: cityName + " \u00b7 ranked for " + d.short,
+      filterChips: chips,
+      feed,
+      feedEmpty: feed.length === 0,
+
+      savedSub: cityName + " \u00b7 this trip only",
+      savedList: tripSaved.map(s => cardOf(ranked.find(r => r.a.id === s.id) || { a: A.find(x => x.id === s.id), m: 0, tier: "Worth a look", accent: BRAND })),
+      savedEmpty: tripSaved.length === 0,
+      hasOtherCitySaves: otherSaved > 0,
+      otherCitySavesLine: otherSaved + (otherSaved === 1 ? " place is" : " places are") + " saved under your other trips. Saves stay with the city they were found in \u2014 they never leak across trips.",
+
+      itinerarySub: cityName + " \u00b7 " + (st.trip ? st.trip.days : 3) + " days",
+      dayTabs: [1,2,3].slice(0, st.trip ? st.trip.days : 3).map(n => ({
+        label: "Day " + n,
+        style: PILL + (st.day === n ? "border:1px solid " + TXT + ";background:" + TXT + ";color:" + BG + ";" : "border:1px solid " + LINE + ";background:none;color:" + MUT + ";"),
+        pick: () => this.save({ day: n })
+      })),
+      slots,
+      dayWarning: eveningFood >= 2,
+      dayWarningText: eveningFood + " sit-down meals are stacked in one evening. Move one to Afternoon, or push it to another day.",
+
+      profileName: who || "Your profile",
+      profileArchetypeStyle: "margin:8px 0 0;font:400 13.5px/1 'Bricolage Grotesque',sans-serif;color:" + d.accent + ";",
+      profileHeroStyle: "border:1px solid " + LINE + ";border-radius:24px;padding:22px 20px;background:linear-gradient(160deg," + d.accent + "1F 0%," + SURF + " 58%);",
+      xpBarStyle: "height:100%;border-radius:999px;background:" + d.accent + ";width:" + into + "%;",
+      profileStats: [
+        { value: String(savedCount), label: "Saved this trip" },
+        { value: String(plannedCount), label: "Scheduled stops" },
+        { value: String(citiesTouched), label: "Cities explored" },
+        { value: String(xp), label: "XP earned" }
+      ],
+      badges: [
+        badgeRow("Perfect match", "See a place scoring 75 or higher", bestMatch >= 75),
+        badgeRow("Full day", "Schedule three stops in one day", [1,2,3].some(n => st.plan.filter(p => p.day === n).length >= 3)),
+        badgeRow("City hopper", "Save places in two different cities", citiesTouched >= 2),
+        badgeRow("Insider", "Reach Lv 2 to unlock off-feed picks", level >= 2)
+      ],
+      resetAll: () => {
+        try { localStorage.removeItem(KEY); } catch (e) {}
+        this.setState({ screen: "welcome", tab: "home", answers: {}, result: null, name: "", trip: null, saved: [], plan: [], day: 1, detail: null, draft: [], multi: false });
+      },
+
+      detailOpen: !!det,
+      closeDetail: () => this.setState({ detail: null }),
+      detailTitle: det ? det.a.title : "",
+      detailLong: det ? det.a.long : "",
+      detailMeta: det ? (det.a.hood + " \u00b7 " + det.a.category + " \u00b7 " + det.a.price + " \u00b7 " + det.a.setting) : "",
+      detailTier: det ? det.tier : "",
+      detailTierStyle: det ? tierStyle(det.tier, det.accent) : "display:none;",
+      detailWhyStyle: det ? ("margin-top:22px;border:1px solid " + LINE + ";border-radius:20px;padding:18px;background:linear-gradient(150deg," + det.accent + "14 0%," + SURF + " 60%);") : "display:none;",
+      detailWhy: det ? ("Scores highest with " + prof(IDS.reduce((b,id) => det.a.s[id] > det.a.s[b] ? id : b, IDS[0])).short + " energy, which is " + (IDS.reduce((b,id) => det.a.s[id] > det.a.s[b] ? id : b, IDS[0]) === domId ? "your dominant trait" : "close to your secondary traits") + ". " + det.a.short) : "",
+      detailRaw: det ? ("Raw score " + det.m + "% \u00b7 logged on every save, shown here only") : "",
+      detailTags: det ? det.a.tags.map(t => ({ label: t })) : [],
+      detailDays: [1,2,3].slice(0, st.trip ? st.trip.days : 3).map(n => ({
+        label: "Day " + n,
+        style: PILL + "flex:1;text-align:center;border:1px solid " + LINE + ";background:none;color:" + MUT + ";",
+        add: () => det && this.addToDay(det.a.id, n)
+      })),
+      detailSave: () => det && this.toggleSave(det.a.id),
+      detailSaveLabel: det && savedIds.indexOf(det.a.id) >= 0 ? "Saved to this trip" : "Save to this trip",
+      detailSaveStyle: "flex:1;cursor:pointer;border-radius:16px;padding:16px;font:500 14.5px/1 'Bricolage Grotesque',sans-serif;" +
+        (det && savedIds.indexOf(det.a.id) >= 0 ? "border:1px solid " + BRAND + ";background:#1A140C;color:" + BRAND + ";" : "border:0;background:" + TXT + ";color:" + BG + ";"),
+
+      tabHome: goTab("home"), tabDiscover: goTab("discover"), tabSaved: goTab("saved"),
+      tabItinerary: goTab("itinerary"), tabProfile: goTab("profile"),
+      tabHomeStyle: tabStyle("home"), tabDiscoverStyle: tabStyle("discover"), tabSavedStyle: tabStyle("saved"),
+      tabItineraryStyle: tabStyle("itinerary"), tabProfileStyle: tabStyle("profile")
+    };
+  }
+}
+
+</script>
+</body>
+</html>

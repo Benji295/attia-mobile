@@ -129,7 +129,7 @@ describe("migration through the real store", () => {
       { id: "dc-speakeasy-tasting", cityId: "miami" },
       { id: "dc-hirshhorn-after-hours", cityId: "miami" }
     ]);
-    expect(store().activeCityId()).toBe("miami");
+    expect(store().cityId).toBe("miami");
     expect(store().activeSaved).toHaveLength(3);
     expect(log).toHaveBeenCalledWith(expect.stringContaining("stamped 3 legacy saves"));
 

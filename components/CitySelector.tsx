@@ -8,8 +8,7 @@ import { useAttia } from "../lib/store";
 // screen that renders it stays in sync. Horizontally scrollable so the labels
 // never clip on narrow devices.
 export function CitySelector() {
-  const { activeCityId, setCity } = useAttia();
-  const cityId = activeCityId();
+  const { cityId, setCity } = useAttia();
 
   return (
     <ScrollView

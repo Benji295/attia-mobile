@@ -18,8 +18,7 @@ const BRAND = "#FB923C"; // sunset warmth, from the locked palette
 export default function Home() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { result, activeSaved, activeCityId, cacheActivities } = useAttia();
-  const cityId = activeCityId();
+  const { result, activeSaved, cityId, cacheActivities } = useAttia();
   const cityName = cityLabel(cityId);
 
   const [data, setData] = useState<Activity[] | null>(null);

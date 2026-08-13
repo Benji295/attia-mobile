@@ -70,7 +70,7 @@ describe("saves are scoped to the city they were made in", () => {
   it("the reverse: save in DC, switch to Miami -> Miami's list is empty, DC's save intact", async () => {
     const { store } = await mountStore();
 
-    expect(store().activeCityId()).toBe(DC); // DEFAULT_CITY
+    expect(store().cityId).toBe(DC); // DEFAULT_CITY
     write(() => store().toggleSave(DC_ACTIVITY));
 
     expect(renderedList(store()).map((a) => a.id)).toEqual([DC_ACTIVITY]);

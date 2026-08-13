@@ -66,8 +66,7 @@ const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
 export default function Discover() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { result, saved, activeSaved, activeCityId, toggleSave, isSaved, cacheActivities } = useAttia();
-  const cityId = activeCityId();
+  const { result, saved, activeSaved, cityId, toggleSave, isSaved, cacheActivities } = useAttia();
   const [ci, setCi] = useState(0);
   const translateX = useSharedValue(0);
 

@@ -93,11 +93,17 @@ type AttiaState = {
    */
   citiesExplored: string[];
   /**
-   * THE one source of truth for which city the app is scoped to. Every read and
-   * every write path goes through this — no screen reads the city another way.
-   * OAT-63 repoints this at trip.city; that is a one-line change, here only.
+   * The active city, as reactive state — this is what screens RENDER from
+   * (CitySelector's selected pill, Itinerary's header, the fetch effects' dep
+   * arrays). It must be a tracked value, not an accessor call: React Compiler is
+   * enabled on this project, and it memoizes a call to a stable callback on the
+   * callee's identity, which never changes. See OAT-96.
+   *
+   * Write-time stamping deliberately does NOT use this — see activeCityIdRef in
+   * the provider. Both come off the same state, so OAT-63 still repoints the
+   * active city from one place in this file.
    */
-  activeCityId: () => string;
+  cityId: string;
   /** answers: map of quiz question id -> chosen option id */
   finishQuiz: (answers: Record<string, string>) => QuizResult | null;
   /** Save/un-save in the active city. Stamps cityId at write time. */
@@ -244,14 +250,35 @@ export function AttiaProvider({ children }: { children: ReactNode }) {
   // city ever saved in. Only ever grows, so a badge can never un-earn.
   const [citiesExploredFloor, setCitiesExploredFloor] = useState<string[]>([]);
 
-  // Mirror the active city in a ref so activeCityId() is right even when a write
-  // fires from a callback captured on an earlier render (e.g. the swipe
-  // animation's runOnJS hop in Discover). Assigned during render, so a write
-  // that happens after setCity always reads the new city.
-  const cityRef = useRef(cityId);
-  cityRef.current = cityId;
+  // ---- ACTIVE CITY: one source, two consumers with opposite needs ----------
+  // RENDERING uses `cityId` state above — reactive, and visible to React
+  // Compiler's dependency tracking.
+  //
+  // WRITE-TIME STAMPING uses this ref, so a callback captured on an earlier
+  // render (Discover's swipe animation hops through runOnJS ~220ms after the
+  // gesture) stamps the city that is active NOW, not the one captured then.
+  //
+  // Both derive from the same state, so OAT-63 repoints the active city from
+  // one place in this file.
+  //
+  // The ref is written from event handlers and effects only — NEVER during
+  // render. Mutating a ref in the render body is a Rules-of-React violation; it
+  // made React Compiler bail on this provider with "Cannot access refs during
+  // render". (It still declines to compile the provider, now only because of an
+  // unrelated limitation — value blocks inside the hydration try/catch — which
+  // is harmless: everything here is memoized explicitly.)
+  const activeCityIdRef = useRef(cityId);
 
-  const activeCityId = useCallback(() => cityRef.current, []);
+  useEffect(() => {
+    activeCityIdRef.current = cityId;
+  }, [cityId]);
+
+  /**
+   * Write-time only. Deliberately NOT on the context: if a screen cannot reach
+   * it, a screen cannot render from it, and OAT-96 becomes structurally
+   * impossible rather than merely discouraged.
+   */
+  const activeCityId = useCallback(() => activeCityIdRef.current, []);
 
   // Rehydrate once on mount, then advance the launch streak exactly once.
   useEffect(() => {
@@ -279,7 +306,7 @@ export function AttiaProvider({ children }: { children: ReactNode }) {
           loadedStreak = blob.streak;
           loadedLast = blob.lastActiveDate;
           setCityId(blob.cityId);
-          cityRef.current = blob.cityId;
+          activeCityIdRef.current = blob.cityId;
         }
       } catch {
         // Corrupt/unavailable storage: fall back to a fresh session.
@@ -371,7 +398,9 @@ export function AttiaProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setCity = (id: string) => {
-    cityRef.current = id; // keep the accessor exact even before the re-render
+    // Stamp immediately: a save fired in the same tick as the switch, or from a
+    // callback captured before it, must land under the new city.
+    activeCityIdRef.current = id;
     setCityId(id);
   };
 
@@ -397,7 +426,7 @@ export function AttiaProvider({ children }: { children: ReactNode }) {
         activityCache,
         streak,
         citiesExplored,
-        activeCityId,
+        cityId,
         finishQuiz,
         toggleSave,
         isSaved,

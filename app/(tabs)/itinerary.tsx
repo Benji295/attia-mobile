@@ -23,8 +23,7 @@ function accentFor(a: Activity) {
 export default function Itinerary() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { activeSaved, result, activityCache, activeCityId } = useAttia();
-  const cityId = activeCityId();
+  const { activeSaved, result, activityCache, cityId } = useAttia();
 
   // Resolve THIS city's stops from the live cache, falling back to the static
   // seed. An itinerary stop is a save (see SavedEntry) — scoped at write time,

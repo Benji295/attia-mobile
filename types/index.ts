@@ -16,7 +16,13 @@ export type PersonalityProfile = {
   name: string;
   description: string;
   summary: string;
+  /** Archetype color — the single source of truth (see data/personalities.ts). */
   accent: string;
+  /**
+   * @deprecated Light-palette wash from OAT-2, retained only until the screens
+   * that still consume it go dark in their own slices. The dark system washes
+   * with an alpha on `accent` instead — withAlpha(accent, "wash") in lib/theme.
+   */
   accentSoft: string;
   traits: string[];
   bestFor: string[];

@@ -4,6 +4,7 @@ import { act } from "react";
 import TestRenderer from "react-test-renderer";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CITIES } from "../lib/cities";
+import { color } from "../lib/theme";
 import { AttiaProvider, useAttia } from "../lib/store";
 import { mountStore, write, type Store } from "./helpers";
 
@@ -55,10 +56,18 @@ function pillsOf(r: TestRenderer.ReactTestRenderer): Pill[] {
   );
   return nodes.map((n, i) => ({
     label: CITIES[i].label,
-    // The selected pill is the dark one — see CitySelector.
-    selected: String(n.props.className).includes("bg-neutral-900"),
+    // Selection is a filled pill: backgroundColor === the `text` token, per the
+    // dark pill spec (OAT-71). It was a `bg-neutral-900` class pre-dark-shell —
+    // same behaviour, different expression.
+    selected: flatten(n.props.style).backgroundColor === color.text,
     press: n.props.onPress as () => void
   }));
+}
+
+/** RN style props can be arrays/nested; flatten to one object. */
+function flatten(style: unknown): Record<string, unknown> {
+  if (Array.isArray(style)) return Object.assign({}, ...style.map(flatten));
+  return (style && typeof style === "object" ? style : {}) as Record<string, unknown>;
 }
 
 async function mountSelector() {

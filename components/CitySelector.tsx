@@ -1,6 +1,7 @@
 import { ScrollView, Text, Pressable } from "react-native";
 import { CITIES } from "../lib/cities";
 import { trackCitySelected } from "../lib/analytics";
+import { color } from "../lib/theme";
 import { useAttia } from "../lib/store";
 
 // Compact pill row (rounded pills, dark selected state) matching the web's
@@ -26,11 +27,18 @@ export function CitySelector() {
               setCity(c.id);
               trackCitySelected(c.id);
             }}
-            className={`rounded-full px-4 py-2 border active:opacity-80 ${
-              selected ? "bg-neutral-900 border-neutral-900" : "bg-white border-neutral-200"
-            }`}
+            className="rounded-pill border active:opacity-80"
+            style={{
+              paddingHorizontal: 15,
+              paddingVertical: 9,
+              backgroundColor: selected ? color.text : "transparent",
+              borderColor: selected ? color.text : color.line
+            }}
           >
-            <Text className={`text-sm font-medium ${selected ? "text-white" : "text-neutral-600"}`}>
+            <Text
+              className="font-display"
+              style={{ fontSize: 12.5, color: selected ? color.bg : color.muted }}
+            >
               {c.label}
             </Text>
           </Pressable>

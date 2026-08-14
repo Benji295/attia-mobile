@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import { activities as seedActivities } from "../../data/activities";
 import { activityMatchPercentage, getPersonalityProfile } from "../../lib/scoring/recommendations";
 import { cityLabel } from "../../lib/cities";
+import { color, screen } from "../../lib/theme";
 import { personalityIds, type Activity } from "../../types";
 import { useAttia } from "../../lib/store";
 
@@ -37,16 +38,25 @@ export default function Itinerary() {
 
   if (items.length === 0) {
     return (
-      <View className="flex-1 bg-white px-5 items-center justify-center" style={{ paddingTop: insets.top + 8 }}>
-        <Ionicons name="map-outline" size={34} color="#A3A3A3" />
-        <Text className="text-base text-neutral-500 mt-2 text-center" style={{ maxWidth: 260 }}>
+      <View
+        className="flex-1 bg-bg items-center justify-center"
+        style={{ paddingTop: Math.max(screen.top, insets.top), paddingHorizontal: screen.x }}
+      >
+        <Ionicons name="map-outline" size={34} color={color.dim} />
+        <Text
+          className="font-display text-muted mt-3 text-center"
+          style={{ fontSize: 14, lineHeight: 14 * 1.5, maxWidth: 260 }}
+        >
           No stops yet. Save activities in Discover and they'll plan out here.
         </Text>
         <Pressable
           onPress={() => router.push("/discover")}
-          className="mt-4 bg-neutral-900 rounded-2xl px-6 py-3 active:opacity-80"
+          className="mt-5 rounded-list active:opacity-80"
+          style={{ backgroundColor: color.text, paddingHorizontal: 24, paddingVertical: 15 }}
         >
-          <Text className="text-white text-sm font-medium">Go to Discover</Text>
+          <Text className="font-display-medium" style={{ fontSize: 15.5, color: color.bg }}>
+            Go to Discover
+          </Text>
         </Pressable>
       </View>
     );
@@ -65,43 +75,56 @@ export default function Itinerary() {
   const stopLabel = items.length === 1 ? "1 stop" : `${items.length} stops`;
 
   return (
-    <View className="flex-1 bg-white" style={{ paddingTop: insets.top + 8 }}>
-      <View className="px-5">
-        <Text className="text-2xl font-medium text-neutral-900">Itinerary</Text>
+    <View className="flex-1 bg-bg" style={{ paddingTop: Math.max(screen.top, insets.top) }}>
+      <View style={{ paddingHorizontal: screen.x }}>
+        <Text
+          className="font-display-medium text-text"
+          style={{ fontSize: 30, lineHeight: 30 * 1.15, letterSpacing: 30 * -0.015 }}
+        >
+          Itinerary
+        </Text>
         <View className="flex-row items-center mt-1" style={{ gap: 4 }}>
-          <Ionicons name="location-outline" size={14} color="#737373" />
-          <Text className="text-sm text-neutral-500">
+          <Ionicons name="location-outline" size={14} color={color.dim} />
+          <Text className="font-display text-muted" style={{ fontSize: 13.5 }}>
             {cityLabel(cityId)} · {stopLabel}
           </Text>
         </View>
       </View>
 
       <ScrollView
-        className="px-5 mt-5"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        className="mt-5"
+contentContainerStyle={{ paddingHorizontal: screen.x, paddingBottom: insets.bottom + 24 }}
         showsVerticalScrollIndicator={false}
       >
         {groups.map((group) => (
           <View key={group.time} className="mb-6">
-            <Text className="text-xs font-medium text-neutral-400 uppercase mb-3" style={{ letterSpacing: 1 }}>
+            <Text
+              className="font-display-semibold text-dim uppercase mb-3"
+              style={{ fontSize: 10, letterSpacing: 10 * 0.2 }}
+            >
               {group.time}
             </Text>
 
             {group.stops.map((a) => (
               <View
                 key={a.id}
-                className="flex-row border border-neutral-200 rounded-2xl overflow-hidden mb-3"
+                className="flex-row bg-surface border border-line rounded-list overflow-hidden mb-2"
               >
-                <View style={{ width: 4, backgroundColor: accentFor(a) }} />
-                <View className="flex-1 px-4 py-3">
-                  <Text className="text-base font-medium text-neutral-900">{a.title}</Text>
-                  <Text className="text-xs text-neutral-400 mt-1">
+                <View style={{ width: 3, backgroundColor: accentFor(a) }} />
+                <View className="flex-1" style={{ padding: 14 }}>
+                  <Text
+                    className="font-display-medium text-text"
+                    style={{ fontSize: 15, lineHeight: 15 * 1.25 }}
+                  >
+                    {a.title}
+                  </Text>
+                  <Text className="font-display text-muted mt-1" style={{ fontSize: 11.5 }}>
                     {a.neighborhood} · {a.category} · {a.priceLevel}
                   </Text>
                 </View>
                 {result && (
-                  <View className="justify-center pr-4">
-                    <Text className="text-sm font-medium" style={{ color: accentFor(a) }}>
+                  <View className="justify-center" style={{ paddingRight: 14 }}>
+                    <Text className="font-display-medium" style={{ fontSize: 13, color: accentFor(a) }}>
                       {activityMatchPercentage(a, result.scores)}%
                     </Text>
                   </View>

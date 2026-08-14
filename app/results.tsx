@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useEffect } from "react";
 import Animated, { ZoomIn } from "react-native-reanimated";
 import ConfettiCannon from "react-native-confetti-cannon";
+import { color, screen } from "../lib/theme";
 import { getPersonalityProfile } from "../lib/scoring/recommendations";
 import { personalityIds } from "../types";
 import { hapticSuccess, prefersReducedMotion } from "../lib/feedback";
@@ -11,7 +12,6 @@ import { trackArchetypeRevealed } from "../lib/analytics";
 import { useAttia } from "../lib/store";
 
 const SCREEN_W = Dimensions.get("window").width;
-const BRAND = "#FB923C"; // sunset warmth, from the locked palette
 
 export default function Results() {
   const router = useRouter();
@@ -40,7 +40,7 @@ export default function Results() {
   const confettiColors = [
     top.accent,
     ...result.secondary.map((id) => getPersonalityProfile(id).accent),
-    BRAND
+    color.brand
   ];
   const maxScore = result.scores[result.dominant] || 1;
   const bars = [...personalityIds]
@@ -51,18 +51,30 @@ export default function Results() {
 
   return (
     <View
-      className="flex-1 bg-white px-6 justify-center"
-      style={{ paddingTop: insets.top, paddingBottom: insets.bottom + 16 }}
+      className="flex-1 bg-bg justify-center"
+      style={{
+        paddingTop: Math.max(screen.top, insets.top),
+        paddingHorizontal: screen.x,
+        paddingBottom: Math.max(screen.bottom, insets.bottom)
+      }}
     >
-      <Text className="text-sm text-neutral-400 text-center">You are</Text>
+      <Text
+        className="font-display-semibold text-dim text-center uppercase"
+        style={{ fontSize: 10, letterSpacing: 10 * 0.24 }}
+      >
+        You are
+      </Text>
       <Animated.View entering={ZoomIn.duration(520).delay(120)}>
-        <Text className="text-3xl font-medium text-center mt-1 mb-3" style={{ color: top.accent }}>
+        <Text
+          className="font-display-medium text-center mt-2 mb-3"
+          style={{ fontSize: 42, lineHeight: 42 * 1.05, letterSpacing: 42 * -0.02, color: top.accent }}
+        >
           {top.name}
         </Text>
       </Animated.View>
       <Text
-        className="text-sm text-neutral-500 text-center leading-6 mb-8"
-        style={{ maxWidth: 290, alignSelf: "center" }}
+        className="font-display text-body text-center mb-8"
+        style={{ fontSize: 16, lineHeight: 16 * 1.6, maxWidth: 290, alignSelf: "center" }}
       >
         {top.description}
       </Text>
@@ -71,13 +83,20 @@ export default function Results() {
         const profile = getPersonalityProfile(b.id);
         return (
           <View key={b.id} className="flex-row items-center mb-3" style={{ gap: 10 }}>
-            <Text className="text-sm text-neutral-500" style={{ width: 130 }} numberOfLines={1}>
+            <Text
+              className="font-display text-muted"
+              style={{ fontSize: 13, width: 130 }}
+              numberOfLines={1}
+            >
               {profile.name.replace("The ", "")}
             </Text>
-            <View className="flex-1 bg-neutral-100 rounded-full overflow-hidden" style={{ height: 8 }}>
+            <View className="flex-1 bg-rule rounded-pill overflow-hidden" style={{ height: 5 }}>
               <View style={{ height: "100%", width: `${b.pct}%`, backgroundColor: profile.accent }} />
             </View>
-            <Text className="text-xs text-neutral-400" style={{ width: 34, textAlign: "right" }}>
+            <Text
+              className="font-display text-meta"
+              style={{ fontSize: 11, width: 34, textAlign: "right" }}
+            >
               {b.pct}%
             </Text>
           </View>
@@ -86,9 +105,15 @@ export default function Results() {
 
       <Pressable
         onPress={() => router.replace("/home")}
-        className="mt-8 w-full bg-neutral-900 rounded-2xl py-4 active:opacity-80"
+        className="mt-8 w-full rounded-list active:opacity-80"
+        style={{ backgroundColor: color.text, padding: 17 }}
       >
-        <Text className="text-white text-center text-base font-medium">Discover your ATTIA</Text>
+        <Text
+          className="font-display-medium text-center"
+          style={{ fontSize: 15.5, lineHeight: 15.5, color: color.bg }}
+        >
+          Discover your ATTIA
+        </Text>
       </Pressable>
 
       <Pressable
@@ -96,9 +121,12 @@ export default function Results() {
           reset();
           router.replace("/");
         }}
-        className="mt-3"
+        className="mt-3 border border-line rounded-list active:opacity-80"
+        style={{ padding: 13 }}
       >
-        <Text className="text-sm text-neutral-400 text-center">Retake the quiz</Text>
+        <Text className="font-display text-muted text-center" style={{ fontSize: 13.5 }}>
+          Retake the quiz
+        </Text>
       </Pressable>
 
       {/* One-shot celebratory burst on reveal. pointerEvents="none" so it never

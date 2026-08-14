@@ -15,6 +15,7 @@ import {
   CITY_HOPPER_MIN_CITIES
 } from "../../lib/gamification";
 import { activities as seedActivities } from "../../data/activities";
+import { color, screen, withAlpha } from "../../lib/theme";
 import { type Activity } from "../../types";
 import { useAttia } from "../../lib/store";
 
@@ -36,7 +37,7 @@ function LevelRing({ progress, level, accent }: { progress: number; level: numbe
   return (
     <View style={{ width: RING, height: RING }} className="items-center justify-center">
       <Svg width={RING} height={RING} style={StyleSheet.absoluteFill}>
-        <Circle cx={RING / 2} cy={RING / 2} r={RING_R} stroke="rgba(0,0,0,0.08)" strokeWidth={RING_STROKE} fill="none" />
+        <Circle cx={RING / 2} cy={RING / 2} r={RING_R} stroke={color.rule} strokeWidth={RING_STROKE} fill="none" />
         <Circle
           cx={RING / 2}
           cy={RING / 2}
@@ -50,7 +51,7 @@ function LevelRing({ progress, level, accent }: { progress: number; level: numbe
           transform={`rotate(-90 ${RING / 2} ${RING / 2})`}
         />
       </Svg>
-      <Text className="text-xl font-medium" style={{ color: accent }}>
+      <Text className="font-display-medium" style={{ fontSize: 19, color: accent }}>
         Lv {level}
       </Text>
     </View>
@@ -75,14 +76,22 @@ export default function Profile() {
   // No quiz result yet → keep it honest and simple (archetype is required to theme).
   if (!result) {
     return (
-      <View className="flex-1 bg-white px-5 items-center justify-center" style={{ paddingTop: insets.top + 8 }}>
-        <Ionicons name="person-circle-outline" size={40} color="#A3A3A3" />
-        <Text className="text-base text-neutral-500 mt-2 text-center">Take the quiz to unlock your profile.</Text>
+      <View
+        className="flex-1 bg-bg items-center justify-center"
+        style={{ paddingTop: Math.max(screen.top, insets.top), paddingHorizontal: screen.x }}
+      >
+        <Ionicons name="person-circle-outline" size={40} color={color.dim} />
+        <Text className="font-display text-muted mt-3 text-center" style={{ fontSize: 14 }}>
+          Take the quiz to unlock your profile.
+        </Text>
         <Pressable
           onPress={() => router.push("/quiz")}
-          className="mt-4 bg-neutral-900 rounded-2xl px-6 py-3 active:opacity-80"
+          className="mt-5 rounded-list active:opacity-80"
+          style={{ backgroundColor: color.text, paddingHorizontal: 24, paddingVertical: 15 }}
         >
-          <Text className="text-white text-sm font-medium">Take the quiz</Text>
+          <Text className="font-display-medium" style={{ fontSize: 15.5, color: color.bg }}>
+            Take the quiz
+          </Text>
         </Pressable>
       </View>
     );
@@ -126,28 +135,46 @@ export default function Profile() {
   ];
 
   return (
-    <View className="flex-1 bg-white" style={{ paddingTop: insets.top + 8 }}>
+    <View className="flex-1 bg-bg" style={{ paddingTop: Math.max(screen.top, insets.top) }}>
       <ScrollView
-        className="px-5"
+        style={{ paddingHorizontal: screen.x }}
         contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         showsVerticalScrollIndicator={false}
       >
-        <Text className="text-2xl font-medium text-neutral-900 mb-5">Profile</Text>
+        <Text
+          className="font-display-medium text-text mb-5"
+          style={{ fontSize: 30, lineHeight: 30 * 1.15, letterSpacing: 30 * -0.015 }}
+        >
+          Profile
+        </Text>
 
         {/* Hero — accent-tinted, level ring + archetype + streak chip. */}
-        <View className="rounded-3xl p-5" style={{ backgroundColor: top.accentSoft }}>
+        <View
+          className="border border-line"
+          style={{
+            borderRadius: 24,
+            padding: 22,
+            backgroundColor: withAlpha(top.accent, "washStrong")
+          }}
+        >
           <View className="flex-row items-center">
             <LevelRing progress={progress} level={level} accent={accent} />
             <View className="flex-1 ml-5">
-              <Text className="text-xs uppercase text-neutral-500" style={{ letterSpacing: 1 }}>
+              <Text
+                className="font-display-semibold text-dim uppercase"
+                style={{ fontSize: 10, letterSpacing: 10 * 0.2 }}
+              >
                 Your archetype
               </Text>
-              <Text className="text-2xl font-medium mt-0.5" style={{ color: accent }}>
+              <Text className="font-display-medium mt-1" style={{ fontSize: 28, color: accent }}>
                 {top.name}
               </Text>
-              <View className="flex-row items-center self-start bg-white rounded-full px-3 py-1 mt-2" style={{ gap: 5 }}>
+              <View
+                className="flex-row items-center self-start bg-bg rounded-pill mt-3"
+                style={{ gap: 5, paddingHorizontal: 12, paddingVertical: 6 }}
+              >
                 <Ionicons name="flame" size={14} color={accent} />
-                <Text className="text-xs font-medium" style={{ color: accent }}>
+                <Text className="font-display-medium" style={{ fontSize: 12, color: accent }}>
                   {streak} day{streak === 1 ? "" : "s"} streak
                 </Text>
               </View>
@@ -158,12 +185,14 @@ export default function Profile() {
         {/* XP bar */}
         <View className="mt-4">
           <View className="flex-row justify-between mb-1.5">
-            <Text className="text-xs text-neutral-500">{progress}/100 XP</Text>
-            <Text className="text-xs text-neutral-400">
+            <Text className="font-display text-muted" style={{ fontSize: 12 }}>
+              {progress}/100 XP
+            </Text>
+            <Text className="font-display text-meta" style={{ fontSize: 12 }}>
               {toNext} to Level {level + 1}
             </Text>
           </View>
-          <View className="bg-neutral-100 rounded-full overflow-hidden" style={{ height: 8 }}>
+          <View className="bg-rule rounded-pill overflow-hidden" style={{ height: 6 }}>
             <View style={{ height: "100%", width: `${progress}%`, backgroundColor: accent }} />
           </View>
         </View>
@@ -173,41 +202,54 @@ export default function Profile() {
           {tiles.map((t) => (
             <View
               key={t.label}
-              className="border border-neutral-200 rounded-2xl px-4 py-4"
-              style={{ width: "47.5%" }}
+              className="bg-surface border border-line rounded-secondary"
+              style={{ width: "47.5%", padding: 17 }}
             >
               <Ionicons name={t.icon} size={20} color={t.color} />
-              <Text className="text-2xl font-medium text-neutral-900 mt-2">{t.value}</Text>
-              <Text className="text-xs text-neutral-400 mt-0.5">{t.label}</Text>
+              <Text className="font-display-medium text-text mt-2" style={{ fontSize: 24 }}>
+                {t.value}
+              </Text>
+              <Text className="font-display text-muted mt-1" style={{ fontSize: 11.5 }}>
+                {t.label}
+              </Text>
             </View>
           ))}
         </View>
 
         {/* Achievements */}
-        <Text className="text-base font-medium text-neutral-900 mt-7 mb-3">Achievements</Text>
+        <Text
+          className="font-display-semibold text-dim uppercase mt-7 mb-3"
+          style={{ fontSize: 10, letterSpacing: 10 * 0.2 }}
+        >
+          Achievements
+        </Text>
         <View className="flex-row flex-wrap" style={{ gap: 12 }}>
           {badges.map((b) => (
             <View
               key={b.key}
-              className="rounded-2xl px-4 py-4"
+className="rounded-secondary"
               style={{
                 width: "47.5%",
-                backgroundColor: b.unlocked ? top.accentSoft : "#F5F5F5",
+                padding: 17,
+                backgroundColor: b.unlocked ? color.surface : "transparent",
                 borderWidth: 1,
-                borderColor: b.unlocked ? "transparent" : "#EEEEEE"
+                borderColor: b.unlocked ? color["line-strong"] : color.line
               }}
             >
               <View className="flex-row items-center justify-between">
-                <Ionicons name={b.icon} size={22} color={b.unlocked ? accent : "#C4C4C4"} />
-                {!b.unlocked && <Ionicons name="lock-closed" size={14} color="#C4C4C4" />}
+                <Ionicons name={b.icon} size={22} color={b.unlocked ? accent : color["faint-2"]} />
+                {!b.unlocked && <Ionicons name="lock-closed" size={14} color={color["faint-3"]} />}
               </View>
               <Text
-                className="text-sm font-medium mt-2"
-                style={{ color: b.unlocked ? accent : "#9CA3AF" }}
+className="font-display-medium mt-2"
+                style={{ fontSize: 13.5, color: b.unlocked ? color.text : color["faint-2"] }}
               >
                 {b.label}
               </Text>
-              <Text className="text-xs mt-0.5" style={{ color: b.unlocked ? "#737373" : "#B5B5B5" }}>
+              <Text
+                className="font-display mt-1"
+                style={{ fontSize: 11.5, color: b.unlocked ? color.brand : color.dim }}
+              >
                 {b.unlocked ? "Unlocked" : b.unlock}
               </Text>
             </View>
@@ -220,13 +262,18 @@ export default function Profile() {
             reset();
             router.replace("/");
           }}
-          className="mt-7 border border-neutral-200 rounded-2xl py-3 active:bg-neutral-50"
+          className="mt-7 border border-line rounded-list active:opacity-80"
+          style={{ padding: 15 }}
         >
-          <Text className="text-sm text-neutral-700 text-center">Retake the quiz</Text>
+          <Text className="font-display text-muted text-center" style={{ fontSize: 13.5 }}>
+            Retake the quiz
+          </Text>
         </Pressable>
 
         <Pressable onPress={() => router.push("/how-it-works")} className="mt-4 active:opacity-60" hitSlop={8}>
-          <Text className="text-sm text-neutral-400 text-center">How ATTIA works</Text>
+          <Text className="font-display text-dim text-center" style={{ fontSize: 13 }}>
+            How ATTIA works
+          </Text>
         </Pressable>
       </ScrollView>
     </View>

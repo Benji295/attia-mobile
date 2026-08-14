@@ -13,6 +13,7 @@ import { useFonts } from "expo-font";
 import { BricolageGrotesque_400Regular } from "@expo-google-fonts/bricolage-grotesque/400Regular";
 import { BricolageGrotesque_500Medium } from "@expo-google-fonts/bricolage-grotesque/500Medium";
 import { BricolageGrotesque_600SemiBold } from "@expo-google-fonts/bricolage-grotesque/600SemiBold";
+import { color } from "../lib/theme";
 import { AttiaProvider } from "../lib/store";
 import { posthog } from "../lib/analytics";
 
@@ -45,8 +46,16 @@ export default function RootLayout() {
       <PostHogProvider client={posthog} autocapture={false}>
         <SafeAreaProvider>
           <AttiaProvider>
-            <StatusBar style="dark" />
-            <Stack screenOptions={{ headerShown: false }} />
+            {/* Light glyphs: the app is dark now, so "dark" icons vanish. */}
+            <StatusBar style="light" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                // Stops a white flash between routes — the navigator's own
+                // background is white by default.
+                contentStyle: { backgroundColor: color.bg }
+              }}
+            />
           </AttiaProvider>
         </SafeAreaProvider>
       </PostHogProvider>

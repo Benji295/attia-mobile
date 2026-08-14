@@ -1,4 +1,5 @@
 import { ScrollView, View, Text, Pressable } from "react-native";
+import { color } from "../lib/theme";
 
 // Filter dimensions, each backed by a real Activity field:
 //   vibe → Activity.vibe, budget → priceLevel, setting → setting, dayPart → dayPart.
@@ -35,8 +36,13 @@ export function DiscoverFilters({
     >
       {GROUPS.map((g, gi) => (
         <View key={g.dim} className="flex-row items-center" style={{ gap: 6 }}>
-          {gi > 0 && <View style={{ width: 1, height: 16, backgroundColor: "#E5E5E5", marginHorizontal: 2 }} />}
-          <Text className="text-[11px] uppercase text-neutral-400" style={{ letterSpacing: 0.5 }}>
+          {gi > 0 && (
+            <View style={{ width: 1, height: 16, backgroundColor: color.rule, marginHorizontal: 2 }} />
+          )}
+          <Text
+            className="font-display-semibold text-dim uppercase"
+            style={{ fontSize: 10, letterSpacing: 10 * 0.2 }}
+          >
             {g.label}
           </Text>
           {g.options.map((opt) => {
@@ -45,11 +51,20 @@ export function DiscoverFilters({
               <Pressable
                 key={opt}
                 onPress={() => onChange(g.dim, opt)}
-                className={`rounded-full px-3 py-1.5 border active:opacity-80 ${
-                  selected ? "bg-neutral-900 border-neutral-900" : "bg-white border-neutral-200"
-                }`}
+                className="rounded-pill border active:opacity-80"
+                style={{
+                  paddingHorizontal: 13,
+                  paddingVertical: 7,
+                  backgroundColor: selected ? color.text : "transparent",
+                  borderColor: selected ? color.text : color.line
+                }}
               >
-                <Text className={`text-xs font-medium ${selected ? "text-white" : "text-neutral-600"}`}>{opt}</Text>
+                <Text
+                  className="font-display"
+                  style={{ fontSize: 12, color: selected ? color.bg : color.muted }}
+                >
+                  {opt}
+                </Text>
               </Pressable>
             );
           })}

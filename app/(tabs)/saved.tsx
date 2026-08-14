@@ -2,6 +2,7 @@ import { View, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMemo } from "react";
 import { activities as seedActivities } from "../../data/activities";
+import { screen } from "../../lib/theme";
 import { activityMatchPercentage } from "../../lib/scoring/recommendations";
 import type { Activity } from "../../types";
 import { useAttia } from "../../lib/store";
@@ -21,17 +22,34 @@ export default function Saved() {
   }, [activeSaved, activityCache]);
 
   return (
-    <View className="flex-1 bg-white px-5" style={{ paddingTop: insets.top + 8 }}>
-      <Text className="text-2xl font-medium text-neutral-900 mb-4">Saved</Text>
+    <View
+      className="flex-1 bg-bg"
+      style={{ paddingTop: Math.max(screen.top, insets.top), paddingHorizontal: screen.x }}
+    >
+      <Text
+        className="font-display-medium text-text mb-4"
+        style={{ fontSize: 30, lineHeight: 30 * 1.15, letterSpacing: 30 * -0.015 }}
+      >
+        Saved
+      </Text>
       {items.length === 0 ? (
-        <Text className="text-sm text-neutral-400 mt-8 text-center">
+        <Text className="font-display text-dim mt-8 text-center" style={{ fontSize: 13 }}>
           Nothing saved yet. Heart an activity in Discover.
         </Text>
       ) : (
         items.map((a) => (
-          <View key={a.id} className="border border-neutral-200 rounded-2xl px-4 py-3 mb-3">
-            <Text className="text-base font-medium text-neutral-900">{a.title}</Text>
-            <Text className="text-xs text-neutral-400 mt-1">
+          <View
+            key={a.id}
+            className="bg-surface border border-line rounded-card mb-3"
+            style={{ paddingHorizontal: 16, paddingVertical: 14 }}
+          >
+            <Text
+              className="font-display-medium text-text"
+              style={{ fontSize: 15, lineHeight: 15 * 1.25 }}
+            >
+              {a.title}
+            </Text>
+            <Text className="font-display text-muted mt-1" style={{ fontSize: 11.5 }}>
               {a.neighborhood} · {a.category}
               {result ? ` · ${activityMatchPercentage(a, result.scores)}% match` : ""}
             </Text>
@@ -42,7 +60,10 @@ export default function Saved() {
       {/* Cross-trip notice — only when saves exist under other cities, so the
           list never reads as "everything you saved is gone". */}
       {savedElsewhereCount > 0 && (
-        <Text className="text-xs text-neutral-400 mt-4 leading-5">
+        <Text
+          className="font-display text-dim border border-line rounded-list mt-4"
+          style={{ fontSize: 12.5, lineHeight: 12.5 * 1.5, padding: 14 }}
+        >
           {savedElsewhereCount} {savedElsewhereCount === 1 ? "place is" : "places are"} saved under
           your other trips. Saves stay with the city they were found in — they never leak across
           trips.

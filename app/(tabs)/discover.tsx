@@ -32,6 +32,7 @@ import {
   trackFilterApplied
 } from "../../lib/analytics";
 import { cityLabel } from "../../lib/cities";
+import { color, screen } from "../../lib/theme";
 import { CitySelector } from "../../components/CitySelector";
 import { DiscoverFilters, DEFAULT_FILTERS, type Filters, type FilterDim } from "../../components/DiscoverFilters";
 import { type Activity } from "../../types";
@@ -46,7 +47,7 @@ const CELEBRATE_COLORS = [
   getPersonalityProfile("explorer").accent,
   getPersonalityProfile("socialite").accent,
   getPersonalityProfile("connector").accent,
-  "#FB923C"
+  color.brand
 ];
 
 // UI-only mapping from activity category to an Ionicons glyph (photo fallback).
@@ -179,11 +180,18 @@ export default function Discover() {
   const Header = (
     <>
       <View className="flex-row items-baseline justify-between">
-        <Text className="text-2xl font-medium text-neutral-900">Discover</Text>
+        <Text
+          className="font-display-medium text-text"
+          style={{ fontSize: 30, lineHeight: 30 * 1.15, letterSpacing: 30 * -0.015 }}
+        >
+          Discover
+        </Text>
         {/* Scoped to the deck you're browsing — a DC count over a Miami deck was
             the same lie the Itinerary header told. */}
         {activeSaved.length > 0 && (
-          <Text className="text-xs text-neutral-400">{activeSaved.length} saved</Text>
+          <Text className="font-display text-meta" style={{ fontSize: 11.5 }}>
+            {activeSaved.length} saved
+          </Text>
         )}
       </View>
       <View className="mt-3 mb-4">
@@ -194,14 +202,22 @@ export default function Discover() {
 
   if (!result) {
     return (
-      <View className="flex-1 bg-white px-5 items-center justify-center" style={{ paddingTop: insets.top + 8 }}>
-        <Ionicons name="compass-outline" size={34} color="#A3A3A3" />
-        <Text className="text-base text-neutral-500 mt-2 text-center">Take the quiz to unlock your matches.</Text>
+      <View
+        className="flex-1 bg-bg items-center justify-center"
+        style={{ paddingTop: Math.max(screen.top, insets.top), paddingHorizontal: screen.x }}
+      >
+        <Ionicons name="compass-outline" size={34} color={color.dim} />
+        <Text className="font-display text-muted mt-3 text-center" style={{ fontSize: 14 }}>
+          Take the quiz to unlock your matches.
+        </Text>
         <Pressable
           onPress={() => router.push("/quiz")}
-          className="mt-4 bg-neutral-900 rounded-2xl px-6 py-3 active:opacity-80"
+          className="mt-5 rounded-list active:opacity-80"
+          style={{ backgroundColor: color.text, paddingHorizontal: 24, paddingVertical: 15 }}
         >
-          <Text className="text-white text-sm font-medium">Take the quiz</Text>
+          <Text className="font-display-medium" style={{ fontSize: 15.5, color: color.bg }}>
+            Take the quiz
+          </Text>
         </Pressable>
       </View>
     );
@@ -209,11 +225,16 @@ export default function Discover() {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-white px-5" style={{ paddingTop: insets.top + 8 }}>
+      <View
+        className="flex-1 bg-bg"
+        style={{ paddingTop: Math.max(screen.top, insets.top), paddingHorizontal: screen.x }}
+      >
         {Header}
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#171717" />
-          <Text className="text-sm text-neutral-400 mt-3">Finding your matches in {cityLabel(cityId)}…</Text>
+          <ActivityIndicator color={color.muted} />
+          <Text className="font-display text-dim mt-3" style={{ fontSize: 13 }}>
+            Finding your matches in {cityLabel(cityId)}…
+          </Text>
         </View>
       </View>
     );
@@ -221,18 +242,27 @@ export default function Discover() {
 
   if (error || !data) {
     return (
-      <View className="flex-1 bg-white px-5" style={{ paddingTop: insets.top + 8 }}>
+      <View
+        className="flex-1 bg-bg"
+        style={{ paddingTop: Math.max(screen.top, insets.top), paddingHorizontal: screen.x }}
+      >
         {Header}
         <View className="flex-1 items-center justify-center">
-          <Ionicons name="cloud-offline-outline" size={34} color="#A3A3A3" />
-          <Text className="text-base text-neutral-500 mt-2 text-center" style={{ maxWidth: 260 }}>
+          <Ionicons name="cloud-offline-outline" size={34} color={color.dim} />
+          <Text
+            className="font-display text-muted mt-3 text-center"
+            style={{ fontSize: 14, lineHeight: 14 * 1.5, maxWidth: 260 }}
+          >
             We couldn't load activities. Check your connection and try again.
           </Text>
           <Pressable
             onPress={() => setReloadKey((k) => k + 1)}
-            className="mt-4 bg-neutral-900 rounded-2xl px-6 py-3 active:opacity-80"
+            className="mt-5 rounded-list active:opacity-80"
+            style={{ backgroundColor: color.text, paddingHorizontal: 24, paddingVertical: 15 }}
           >
-            <Text className="text-white text-sm font-medium">Retry</Text>
+            <Text className="font-display-medium" style={{ fontSize: 15.5, color: color.bg }}>
+              Retry
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -353,7 +383,10 @@ export default function Discover() {
     });
 
   return (
-    <View className="flex-1 bg-white px-5" style={{ paddingTop: insets.top + 8 }}>
+    <View
+      className="flex-1 bg-bg"
+      style={{ paddingTop: Math.max(screen.top, insets.top), paddingHorizontal: screen.x }}
+    >
       {Header}
 
       <View className="mb-3">
@@ -362,23 +395,29 @@ export default function Discover() {
 
       {filtered.length === 0 && filtersActive ? (
         <View className="flex-1 items-center justify-center">
-          <Ionicons name="filter-outline" size={34} color="#A3A3A3" />
-          <Text className="text-base text-neutral-500 mt-2 text-center" style={{ maxWidth: 260 }}>
+          <Ionicons name="filter-outline" size={34} color={color.dim} />
+          <Text
+            className="font-display text-muted mt-3 text-center"
+            style={{ fontSize: 14, maxWidth: 260 }}
+          >
             No matches with these filters — loosen one.
           </Text>
           <Pressable
             onPress={clearFilters}
-            className="mt-4 bg-neutral-900 rounded-2xl px-6 py-3 active:opacity-80"
+            className="mt-5 rounded-list active:opacity-80"
+            style={{ backgroundColor: color.text, paddingHorizontal: 24, paddingVertical: 15 }}
           >
-            <Text className="text-white text-sm font-medium">Clear filters</Text>
+            <Text className="font-display-medium" style={{ fontSize: 15.5, color: color.bg }}>
+              Clear filters
+            </Text>
           </Pressable>
         </View>
       ) : ranItem ? (
         <>
           <GestureDetector gesture={pan}>
             <Animated.View style={[{ flex: 1 }, cardStyle]}>
-              <View className="flex-1 border border-neutral-200 rounded-2xl overflow-hidden">
-                <View className="flex-1 bg-neutral-100 items-center justify-center">
+              <View className="flex-1 bg-surface border border-line rounded-card overflow-hidden">
+                <View className="flex-1 items-center justify-center" style={{ backgroundColor: color.rule }}>
                   {/* Icon fallback sits underneath; the photo covers it when it loads. */}
                   <Ionicons
                     name={CATEGORY_ICON[ranItem.activity.category] ?? "sparkles-outline"}
@@ -393,8 +432,14 @@ export default function Discover() {
                       transition={150}
                     />
                   )}
-                  <View className="absolute top-3 right-3 bg-white border border-neutral-200 rounded-lg px-2 py-1">
-                    <Text className="text-sm font-medium" style={{ color: accentFor(ranItem.activity) }}>
+                  <View
+                    className="absolute top-3 right-3 rounded-pill"
+                    style={{ backgroundColor: color.bg, paddingHorizontal: 10, paddingVertical: 5 }}
+                  >
+                    <Text
+                      className="font-display-semibold"
+                      style={{ fontSize: 11, color: accentFor(ranItem.activity) }}
+                    >
                       {ranItem.match}% match
                     </Text>
                   </View>
@@ -404,7 +449,7 @@ export default function Discover() {
                     <Ionicons name="checkmark-circle" size={42} color={SAVE_CUE_COLOR} />
                   </Animated.View>
                   <Animated.View style={[{ position: "absolute", top: 12, left: 12 }, skipCueStyle]}>
-                    <Ionicons name="close-circle" size={42} color="#A3A3A3" />
+                    <Ionicons name="close-circle" size={42} color={color.dim} />
                   </Animated.View>
                 </View>
                 <View className="px-4 py-4">
@@ -422,11 +467,19 @@ export default function Discover() {
                       </Text>
                     </View>
                   )}
-                  <Text className="text-lg font-medium text-neutral-900">{ranItem.activity.title}</Text>
-                  <Text className="text-xs text-neutral-400 mt-1">
+                  <Text
+                    className="font-display-medium text-text"
+                    style={{ fontSize: 18, lineHeight: 18 * 1.22 }}
+                  >
+                    {ranItem.activity.title}
+                  </Text>
+                  <Text className="font-display text-muted mt-1" style={{ fontSize: 11.5 }}>
                     {ranItem.activity.neighborhood} · {ranItem.activity.category} · {ranItem.activity.priceLevel}
                   </Text>
-                  <Text className="text-sm text-neutral-600 mt-3 leading-5">
+                  <Text
+                    className="font-display text-body mt-3"
+                    style={{ fontSize: 13, lineHeight: 13 * 1.5 }}
+                  >
                     {matchReason(ranItem.activity, result.dominant)}
                   </Text>
                 </View>
@@ -437,21 +490,21 @@ export default function Discover() {
           <View className="flex-row justify-center items-center py-4" style={{ gap: 34 }}>
             <Pressable
               onPress={() => dismiss(false)}
-              className="border border-neutral-200 rounded-full items-center justify-center active:scale-95"
+className="bg-surface border border-line rounded-pill items-center justify-center active:scale-95"
               style={{ width: 62, height: 62 }}
             >
-              <Ionicons name="close" size={28} color="#737373" />
+              <Ionicons name="close" size={28} color={color.muted} />
             </Pressable>
             <Pressable
               onPress={() => dismiss(true)}
-              className="border border-neutral-200 rounded-full items-center justify-center active:scale-95"
+className="bg-surface border border-line rounded-pill items-center justify-center active:scale-95"
               style={{ width: 62, height: 62 }}
             >
               <Animated.View style={heartStyle}>
                 <Ionicons
                   name={isSaved(ranItem.activity.id) ? "heart" : "heart-outline"}
                   size={26}
-                  color="#171717"
+                  color={color.brand}
                 />
               </Animated.View>
             </Pressable>
@@ -459,10 +512,14 @@ export default function Discover() {
         </>
       ) : (
         <View className="flex-1 items-center justify-center">
-          <Ionicons name="checkmark-done-outline" size={34} color="#A3A3A3" />
-          <Text className="text-base text-neutral-500 mt-2">That's your ATTIA for today.</Text>
+          <Ionicons name="checkmark-done-outline" size={34} color={color.dim} />
+          <Text className="font-display text-muted mt-3" style={{ fontSize: 14 }}>
+            That's your ATTIA for today.
+          </Text>
           <Pressable onPress={() => setCi(0)} className="mt-4">
-            <Text className="text-sm text-neutral-400">Start over</Text>
+            <Text className="font-display text-dim" style={{ fontSize: 13 }}>
+              Start over
+            </Text>
           </Pressable>
         </View>
       )}
@@ -477,11 +534,18 @@ export default function Discover() {
           style={{ position: "absolute", left: 0, right: 0, bottom: 96, alignItems: "center" }}
         >
           <View
-            className="flex-row items-center bg-white border rounded-full px-3 py-1"
-            style={{ gap: 3, borderColor: SAVE_CUE_COLOR }}
+className="flex-row items-center rounded-pill"
+            style={{
+              gap: 3,
+              paddingHorizontal: 12,
+              paddingVertical: 5,
+              backgroundColor: color.surface,
+              borderWidth: 1,
+              borderColor: SAVE_CUE_COLOR
+            }}
           >
             <Ionicons name="add" size={14} color={SAVE_CUE_COLOR} />
-            <Text className="text-sm font-medium" style={{ color: SAVE_CUE_COLOR }}>
+            <Text className="font-display-medium" style={{ fontSize: 13, color: SAVE_CUE_COLOR }}>
               10 XP
             </Text>
           </View>
@@ -497,8 +561,13 @@ export default function Discover() {
           pointerEvents="none"
           style={{ position: "absolute", left: 0, right: 0, top: 230, alignItems: "center" }}
         >
-          <View className="rounded-2xl px-4 py-2" style={{ backgroundColor: SAVE_CUE_COLOR }}>
-            <Text className="text-base font-medium text-white">Perfect match! {flash.pct}%</Text>
+          <View
+            className="rounded-list"
+            style={{ backgroundColor: SAVE_CUE_COLOR, paddingHorizontal: 16, paddingVertical: 10 }}
+          >
+            <Text className="font-display-medium" style={{ fontSize: 15, color: color.bg }}>
+              Perfect match! {flash.pct}%
+            </Text>
           </View>
         </Animated.View>
       )}
@@ -512,9 +581,14 @@ export default function Discover() {
           pointerEvents="none"
           style={{ position: "absolute", left: 0, right: 0, top: insets.top + 56, alignItems: "center" }}
         >
-          <View className="flex-row items-center bg-neutral-900 rounded-full px-4 py-2" style={{ gap: 6 }}>
-            <Ionicons name="trophy" size={16} color="#FB923C" />
-            <Text className="text-sm font-medium text-white">{toast.msg}</Text>
+          <View
+            className="flex-row items-center bg-surface border border-line rounded-pill"
+            style={{ gap: 6, paddingHorizontal: 16, paddingVertical: 9 }}
+          >
+            <Ionicons name="trophy" size={16} color={color.brand} />
+            <Text className="font-display-medium text-text" style={{ fontSize: 13 }}>
+              {toast.msg}
+            </Text>
           </View>
         </Animated.View>
       )}

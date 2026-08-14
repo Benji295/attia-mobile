@@ -1,22 +1,32 @@
+const { color, radius, font, screen } = require("./lib/tokens");
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: [
-    "./app/**/*.{js,jsx,ts,tsx}",
-    "./components/**/*.{js,jsx,ts,tsx}",
-  ],
+  content: ["./app/**/*.{js,jsx,ts,tsx}", "./components/**/*.{js,jsx,ts,tsx}"],
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
-      // ATTIA core palette — LOCKED (OAT-2). Single source of truth for the
-      // neutral skeleton + brand warmth. Per-personality accents live in
-      // data/personalities.ts (the one place archetype colors are defined).
-      colors: {
-        ink: "#171717", // primary text + CTAs (≈ neutral-900)
-        surface: "#FFFFFF", // cards, backgrounds
-        mist: "#E5E5E5", // borders, dividers (≈ neutral-200)
-        brand: "#FB923C", // sunset warmth: splash, logo, accents — NOT the default CTA
+      // ATTIA dark design system (OAT-90). Values are NOT written here — they
+      // come from lib/tokens.js, which app code also reads through lib/theme.ts,
+      // so the palette exists exactly once. Archetype accents live with the
+      // archetypes, in data/personalities.ts.
+      colors: color,
+      borderRadius: radius,
+      // Bricolage ships as STATIC weights, so a weight is a family, not a
+      // font-weight utility: use font-display / font-display-medium /
+      // font-display-semibold. `font-medium` cannot reach the Medium face.
+      fontFamily: {
+        display: [font.regular],
+        "display-medium": [font.medium],
+        "display-semibold": [font.semibold]
       },
-    },
+      // Screen padding: 64px clears the status bar, 22 sides, 30 bottom.
+      spacing: {
+        "screen-top": screen.top,
+        "screen-x": screen.x,
+        "screen-bottom": screen.bottom
+      }
+    }
   },
-  plugins: [],
+  plugins: []
 };

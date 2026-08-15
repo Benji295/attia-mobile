@@ -1,4 +1,4 @@
-import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
+import { View, Text, Pressable, ScrollView, StyleSheet, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -61,7 +61,7 @@ function LevelRing({ progress, level, accent }: { progress: number; level: numbe
 export default function Profile() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { result, saved, streak, activityCache, citiesExplored, reset } = useAttia();
+  const { result, saved, streak, activityCache, citiesExplored, clearResult, reset } = useAttia();
 
   // Resolve saved ids -> activities from the live cache (seed fallback) for the
   // "Perfect match" badge. Deliberately GLOBAL (every city): XP, level, streak
@@ -256,17 +256,49 @@ className="font-display-medium mt-2"
           ))}
         </View>
 
-        {/* Actions */}
+        {/* Actions.
+            These were ONE button until OAT-93: "Retake the quiz" called reset(),
+            which silently deleted every save, badge and explored city. Retaking
+            a quiz is not a request to delete your trip, so the two are now
+            separate — and the destructive one says what it destroys. */}
         <Pressable
           onPress={() => {
-            reset();
-            router.replace("/");
+            clearResult(); // result only — saves, badges, streak, cities survive
+            router.replace("/quiz");
           }}
           className="mt-7 border border-line rounded-list active:opacity-80"
           style={{ padding: 15 }}
         >
           <Text className="font-display text-muted text-center" style={{ fontSize: 13.5 }}>
             Retake the quiz
+          </Text>
+        </Pressable>
+
+        {/* Visually secondary, and gated behind a confirmation that names the
+            losses rather than asking a vague "are you sure?". */}
+        <Pressable
+          onPress={() =>
+            Alert.alert(
+              "Reset everything?",
+              "This deletes your saved places, your badges, the cities you have explored, and your quiz result. It cannot be undone.",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Reset everything",
+                  style: "destructive",
+                  onPress: () => {
+                    reset();
+                    router.replace("/");
+                  }
+                }
+              ]
+            )
+          }
+          className="mt-3 active:opacity-60"
+          hitSlop={8}
+        >
+          <Text className="font-display text-dim text-center" style={{ fontSize: 12.5 }}>
+            Reset everything
           </Text>
         </Pressable>
 

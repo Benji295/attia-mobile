@@ -16,6 +16,13 @@ export type PersonalityProfile = {
   name: string;
   description: string;
   summary: string;
+  /**
+   * Blend-sentence clauses (OAT-102). `dominantClause` reads as this archetype
+   * leading ("you plan carefully"); `secondaryClause` reads as it following
+   * ("then want the room to be full"). Combined in lib/blend.ts.
+   */
+  dominantClause: string;
+  secondaryClause: string;
   /** Archetype color — the single source of truth (see data/personalities.ts). */
   accent: string;
   /**

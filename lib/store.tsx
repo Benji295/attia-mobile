@@ -112,6 +112,13 @@ type AttiaState = {
   isSaved: (id: string) => boolean;
   cacheActivities: (list: Activity[]) => void;
   setCity: (id: string) => void;
+  /**
+   * Clear the quiz result and NOTHING else (OAT-93). Saves, badges, streak and
+   * the cities-explored floor all survive — this is what "Retake the quiz"
+   * calls. Distinct from reset(), which is a deliberate wipe.
+   */
+  clearResult: () => void;
+  /** Full wipe: quiz result, every save, and the cities-explored floor. */
   reset: () => void;
 };
 
@@ -404,6 +411,9 @@ export function AttiaProvider({ children }: { children: ReactNode }) {
     setCityId(id);
   };
 
+  // Retake, not wipe: the archetype goes, everything the user earned stays.
+  const clearResult = () => setResult(null);
+
   const reset = () => {
     setResult(null);
     setSaved([]);
@@ -432,6 +442,7 @@ export function AttiaProvider({ children }: { children: ReactNode }) {
         isSaved,
         cacheActivities,
         setCity,
+        clearResult,
         reset
       }}
     >

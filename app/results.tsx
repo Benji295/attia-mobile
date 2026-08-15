@@ -7,14 +7,18 @@ import {
   StyleSheet,
   Animated,
   Easing,
-  Platform
+  Platform,
+  ImageBackground,
+  useWindowDimensions
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useEffect, useRef, type ReactNode } from "react";
-import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
+import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import ConfettiCannon from "react-native-confetti-cannon";
-import { ALPHA, color, screen, withAlpha } from "../lib/theme";
+import { color, screen, withAlpha } from "../lib/theme";
+import { archetypeImages } from "../lib/archetypeImages";
+import { blendSentence } from "../lib/blend";
 import { getPersonalityProfile } from "../lib/scoring/recommendations";
 import { personalityIds, type PersonalityId } from "../types";
 import { hapticSuccess, prefersReducedMotion } from "../lib/feedback";
@@ -26,11 +30,27 @@ import { useAttia } from "../lib/store";
 
 const SCREEN_W = Dimensions.get("window").width;
 
-// The glow's radial-gradient(120% 90% at 50% 0%, <accent>26 0%, transparent 62%).
-const GLOW_HEIGHT = 300;
-const GLOW_STOP = 0.62;
-// `26` as a fraction — the alpha suffix stays the single source (lib/tokens.js).
-const GLOW_OPACITY = parseInt(ALPHA.glow, 16) / 255;
+// The archetype card runs full-bleed from the top at FULL strength — it is not
+// dimmed. What makes bright cards (Explorer, Culture Vulture) usable is the
+// scrim below it, which ramps to solid #0D0D0F by ~55% of screen height so the
+// spectrum card always sits on flat dark.
+// Measured per render, not captured at import: a module-scope Dimensions.get()
+// is stale after a rotation.
+const CARD_FRACTION = 0.55;
+// Stops: clear over the subject, then an accelerating ramp that is FULLY opaque
+// by 78% of the card. Content starts at CONTENT_START (just past that), so the
+// headline never sits on lit photo — measured at 1.6:1 against the Explorer card
+// when it did. The image itself is never dimmed; the ramp is the whole
+// mechanism, and the top third stays at full strength.
+const SCRIM_STOPS: [number, number][] = [
+  [0, 0],
+  [0.3, 0.12],
+  [0.55, 0.58],
+  [0.78, 1],
+  [1, 1]
+];
+/** Where the scroll content begins, as a fraction of the card height. */
+const CONTENT_START = 0.8;
 
 // react-native-web has no native driver; asking for it there leaves the value at
 // its initial state (OAT-71 shipped the same guard on Welcome).
@@ -102,6 +122,7 @@ export default function Results() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { hydrated, result } = useAttia();
+  const { height: windowHeight } = useWindowDimensions();
 
   // Wait for hydration before bouncing. `result` is null for the first frames of
   // a cold start, so the un-guarded version sent anyone who reloaded or deep-
@@ -141,6 +162,8 @@ export default function Results() {
   //
   // so the dominant always reads full-width and the rest are relative to it.
   // Against 100 every bar would be a sliver, since raw scores never approach it.
+  const cardHeight = Math.round(windowHeight * CARD_FRACTION);
+
   const topScore = Math.max(...personalityIds.map((id) => result.scores[id]));
   const spectrum = [...personalityIds]
     .sort((a, b) => result.scores[b] - result.scores[a])
@@ -151,24 +174,48 @@ export default function Results() {
 
   return (
     <View className="flex-1 bg-bg">
-      {/* Radial glow bleeding from the top, in the archetype's accent. RN has no
-          CSS gradients, so this is react-native-svg's RadialGradient. */}
-      <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
-        <Svg width="100%" height={GLOW_HEIGHT}>
-          <Defs>
-            <RadialGradient id="revealGlow" cx="50%" cy="0%" rx="120%" ry="90%">
-              <Stop offset="0" stopColor={top.accent} stopOpacity={GLOW_OPACITY} />
-              <Stop offset={GLOW_STOP} stopColor={top.accent} stopOpacity={0} />
-            </RadialGradient>
-          </Defs>
-          <Rect x="0" y="0" width="100%" height={GLOW_HEIGHT} fill="url(#revealGlow)" />
-        </Svg>
+      {/* The archetype card, full-bleed from the top at FULL strength — never
+          dimmed. The scrim below it does the work: transparent over the subject,
+          ramping to solid #0D0D0F by ~55% of screen height, which is what makes
+          the bright cards (Explorer, Culture Vulture) usable without touching
+          the image itself. RN has no CSS gradients, so this is
+          react-native-svg's LinearGradient. */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: cardHeight,
+          overflow: "hidden"
+        }}
+      >
+        <ImageBackground
+          source={archetypeImages[result.dominant]}
+          resizeMode="cover"
+          style={{ width: "100%", height: "100%" }}
+          // Atmosphere, not information: the reveal reads identically without it.
+          accessible={false}
+        >
+          <Svg width="100%" height={cardHeight} style={StyleSheet.absoluteFill}>
+            <Defs>
+              <LinearGradient id="cardScrim" x1="0" y1="0" x2="0" y2="1">
+                {SCRIM_STOPS.map(([offset, opacity]) => (
+                  <Stop key={offset} offset={offset} stopColor={color.bg} stopOpacity={opacity} />
+                ))}
+              </LinearGradient>
+            </Defs>
+            <Rect x="0" y="0" width="100%" height={cardHeight} fill="url(#cardScrim)" />
+          </Svg>
+        </ImageBackground>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingTop: Math.max(screen.top, insets.top),
+          // Clear the card's lit band — see SCRIM_STOPS.
+          paddingTop: Math.max(screen.top, insets.top) + Math.round(cardHeight * CONTENT_START),
           paddingHorizontal: screen.x,
           paddingBottom: Math.max(screen.bottom, insets.bottom)
         }}
@@ -193,7 +240,7 @@ export default function Results() {
             className="font-display text-body mt-3"
             style={{ fontSize: 16, lineHeight: 16 * 1.6 }}
           >
-            {top.summary}
+            {blendSentence(result)}
           </Text>
 
           {/* Trait pills — 1px border at accent+44, label in the accent. */}

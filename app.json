@@ -4,11 +4,10 @@
     "slug": "attia",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/brand/attia-icon.png",
     "scheme": "attia",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.attia.app",
       "supportsTablet": false
     },
@@ -48,6 +47,11 @@
       "eas": {
         "projectId": "eeed2f43-c49c-44df-9159-b771c6a34938"
       }
+    },
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#0D0D0F"
     }
   }
 }

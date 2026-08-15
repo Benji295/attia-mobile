@@ -1,18 +1,32 @@
-import { View, Text, Pressable, Animated, Easing, Platform } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  Animated,
+  Easing,
+  Platform,
+  ImageBackground,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import Svg, { Path } from "react-native-svg";
 import { color, screen } from "../lib/theme";
+import { getPersonalityProfile } from "../lib/scoring/recommendations";
 import { prefersReducedMotion } from "../lib/feedback";
+import { AttiaMark } from "../components/AttiaMark";
 import { useAttia } from "../lib/store";
 
-// Welcome (OAT-71 / OAT-35 / OAT-38), rebuilt to design/ATTIA_Merged_dc.html.
+// The ambience sits behind everything. It is already near-black across the top
+// (mean luminance ~15) with the light low in the frame, so the brand block needs
+// NO scrim — dimming it would kill the one thing the image is there for.
+const AMBIENCE = require("../assets/brand/welcome-ambience.jpg");
+
+// Welcome (OAT-71 / OAT-99 / OAT-35 / OAT-38), to design/ATTIA_Merged_dc.html.
 //
-// The 196px hero image the design puts above this block is deliberately absent:
-// there is no photography in the repo and inventing one is worse than shipping
-// without. The brand block is the top of the screen until OAT-71's imagery
-// lands, at which point it regains its -34px overlap.
+// OAT-71 shipped this without imagery. OAT-99 lands the real brand assets: the
+// ATTIA mark replaces the placeholder sparkle, and welcome-ambience.jpg becomes
+// a full-bleed background. The design's discrete 196px hero card is superseded —
+// the ambience IS the imagery now, and it runs the whole screen.
 
 // Both animations use React Native's core Animated rather than Reanimated,
 // which the rest of the app uses. Reanimated is right for gesture-driven work
@@ -41,7 +55,7 @@ const WARM_COLORS = [
   color.brand,
   color.brand,
   color["text-warm"],
-  color["text-warm"]
+  color["text-warm"],
 ];
 
 /** One expansion line. Rises on mount; the second is delayed .12s. */
@@ -56,7 +70,7 @@ function RiseLine({ delay, children }: { delay: number; children: ReactNode }) {
       duration: RISE_MS,
       delay,
       easing: RISE_EASING,
-      useNativeDriver: NATIVE_DRIVER
+      useNativeDriver: NATIVE_DRIVER,
     });
     anim.start();
 
@@ -77,8 +91,13 @@ function RiseLine({ delay, children }: { delay: number; children: ReactNode }) {
       style={{
         opacity: t,
         transform: [
-          { translateY: t.interpolate({ inputRange: [0, 1], outputRange: [RISE_TRANSLATE, 0] }) }
-        ]
+          {
+            translateY: t.interpolate({
+              inputRange: [0, 1],
+              outputRange: [RISE_TRANSLATE, 0],
+            }),
+          },
+        ],
       }}
     >
       {children}
@@ -91,7 +110,13 @@ function RiseLine({ delay, children }: { delay: number; children: ReactNode }) {
  * Under Reduce Motion it simply rests in brand orange — which is what the
  * prototype shows when its animation does not run.
  */
-function WarmWord({ offset, children }: { offset: number; children: ReactNode }) {
+function WarmWord({
+  offset,
+  children,
+}: {
+  offset: number;
+  children: ReactNode;
+}) {
   const reduce = prefersReducedMotion();
   const t = useRef(new Animated.Value(0)).current;
 
@@ -104,8 +129,8 @@ function WarmWord({ offset, children }: { offset: number; children: ReactNode })
         duration: WARM_MS,
         delay: offset,
         easing: Easing.linear,
-        useNativeDriver: false
-      })
+        useNativeDriver: false,
+      }),
     );
     loop.start();
     return () => loop.stop();
@@ -114,7 +139,12 @@ function WarmWord({ offset, children }: { offset: number; children: ReactNode })
   if (reduce) return <Text style={{ color: color.brand }}>{children}</Text>;
   return (
     <Animated.Text
-      style={{ color: t.interpolate({ inputRange: WARM_STOPS, outputRange: WARM_COLORS }) }}
+      style={{
+        color: t.interpolate({
+          inputRange: WARM_STOPS,
+          outputRange: WARM_COLORS,
+        }),
+      }}
     >
       {children}
     </Animated.Text>
@@ -150,110 +180,144 @@ export default function Welcome() {
     return <View className="flex-1 bg-bg" />;
   }
 
+  // The screen decides the orb colour, not the mark: brand orange for a first
+  // run, the user's own archetype accent once the quiz has been taken.
+  const orbColor = result
+    ? getPersonalityProfile(result.dominant).accent
+    : color.brand;
+
   return (
-    <View
-      className="flex-1 bg-bg"
-      style={{
-        // Spec fixes 64px to clear the status bar; max() keeps it safe on a
-        // device whose inset is deeper than the prototype's.
-        paddingTop: Math.max(screen.top, insets.top),
-        paddingHorizontal: screen.x,
-        paddingBottom: Math.max(screen.bottom, insets.bottom)
-      }}
-    >
-      <View className="items-center">
-        {/* Sparkle — the prototype's own 24-grid path, stroked in brand orange. */}
-        <Svg width={30} height={30} viewBox="0 0 24 24" fill="none">
-          <Path
-            d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"
-            stroke={color.brand}
-            strokeWidth={1.6}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </Svg>
-
-        <Text
-          className="font-display-medium text-text text-center"
-          style={{ fontSize: 56, lineHeight: 56, letterSpacing: 56 * 0.02, marginTop: 14 }}
+    // bg underneath the image on purpose: a slow decode shows #0D0D0F, never
+    // white, and the image carries no scrim of its own.
+    <View className="flex-1 bg-bg">
+      <ImageBackground
+        source={AMBIENCE}
+        resizeMode="cover"
+        style={{ flex: 1 }}
+        // The ambience is atmosphere, not information — the screen reads
+        // identically without it.
+        accessible={false}
+      >
+        <View
+          className="flex-1"
+          style={{
+            // Spec fixes 64px to clear the status bar; max() keeps it safe on a
+            // device whose inset is deeper than the prototype's.
+            paddingTop: Math.max(screen.top, insets.top),
+            paddingHorizontal: screen.x,
+            paddingBottom: Math.max(screen.bottom, insets.bottom),
+          }}
         >
-          ATTIA
-        </Text>
+          <View className="items-center">
+            {/* The mark. A returning user who lands here (rather than being
+            forwarded to Home) sees the orb in their own archetype's accent. */}
+            <AttiaMark size={46} orbColor={orbColor} />
 
-        {/* Expansion — two uppercase lines, each rising, with one warming word. */}
-        <View style={{ marginTop: 17 }}>
-          <RiseLine delay={0}>
             <Text
-              className="font-display-medium text-center uppercase"
+              className="font-display-medium text-text text-center"
               style={{
-                fontSize: 16,
-                lineHeight: 16 * 1.55,
-                letterSpacing: 16 * 0.26,
-                color: color["text-warm"]
+                fontSize: 56,
+                lineHeight: 56,
+                letterSpacing: 56 * 0.02,
+                marginTop: 14,
               }}
             >
-              Authentic <WarmWord offset={0}>Travel</WarmWord>
+              ATTIA
             </Text>
-          </RiseLine>
-          <RiseLine delay={120}>
+
+            {/* Expansion — two uppercase lines, each rising, with one warming word. */}
+            <View style={{ marginTop: 17 }}>
+              <RiseLine delay={0}>
+                <Text
+                  className="font-display-medium text-center uppercase"
+                  style={{
+                    fontSize: 16,
+                    lineHeight: 16 * 1.55,
+                    letterSpacing: 16 * 0.26,
+                    color: color["text-warm"],
+                  }}
+                >
+                  Authentic <WarmWord offset={0}>Travel</WarmWord>
+                </Text>
+              </RiseLine>
+              <RiseLine delay={120}>
+                <Text
+                  className="font-display-medium text-center uppercase"
+                  style={{
+                    fontSize: 16,
+                    lineHeight: 16 * 1.55,
+                    letterSpacing: 16 * 0.26,
+                    color: color["text-warm"],
+                  }}
+                >
+                  Tailored <WarmWord offset={350}>In Advance</WarmWord>
+                </Text>
+              </RiseLine>
+            </View>
+
             <Text
-              className="font-display-medium text-center uppercase"
+              className="font-display text-center"
               style={{
-                fontSize: 16,
-                lineHeight: 16 * 1.55,
-                letterSpacing: 16 * 0.26,
-                color: color["text-warm"]
+                fontSize: 13,
+                lineHeight: 13 * 1.6,
+                color: color.dim,
+                marginTop: 13,
               }}
             >
-              Tailored <WarmWord offset={350}>In Advance</WarmWord>
+              {/* No italic face ships with Bricolage; the colour shift carries it. */}
+              <Text style={{ fontStyle: "italic", color: color.muted }}>
+                Atiyah
+              </Text>{" "}
+              — gift
             </Text>
-          </RiseLine>
+
+            <Text
+              className="font-display text-center"
+              style={{
+                fontSize: 17,
+                lineHeight: 17 * 1.4,
+                color: color.brand,
+                marginTop: 18,
+              }}
+            >
+              Your ATTIA awaits.
+            </Text>
+          </View>
+
+          <View className="flex-1" />
+
+          <Pressable
+            onPress={() => router.push("/quiz")}
+            className="w-full rounded-list active:opacity-80"
+            style={{ backgroundColor: color.text, padding: 17, marginTop: 28 }}
+          >
+            <Text
+              className="font-display-medium text-center"
+              style={{ fontSize: 15.5, lineHeight: 15.5, color: color.bg }}
+            >
+              Take the quiz
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => router.push("/how-it-works")}
+            className="w-full active:opacity-60"
+            style={{ marginTop: 14 }}
+            hitSlop={8}
+          >
+            <Text
+              className="font-display text-center"
+              style={{
+                fontSize: 13.5,
+                lineHeight: 13.5 * 1.4,
+                color: color.dim,
+              }}
+            >
+              How it works
+            </Text>
+          </Pressable>
         </View>
-
-        <Text
-          className="font-display text-center"
-          style={{ fontSize: 13, lineHeight: 13 * 1.6, color: color.dim, marginTop: 13 }}
-        >
-          {/* No italic face ships with Bricolage; the colour shift carries it. */}
-          <Text style={{ fontStyle: "italic", color: color.muted }}>Atiyah</Text> — gift
-        </Text>
-
-        <Text
-          className="font-display text-center"
-          style={{ fontSize: 17, lineHeight: 17 * 1.4, color: color.brand, marginTop: 18 }}
-        >
-          Your ATTIA awaits.
-        </Text>
-      </View>
-
-      <View className="flex-1" />
-
-      <Pressable
-        onPress={() => router.push("/quiz")}
-        className="w-full rounded-list active:opacity-80"
-        style={{ backgroundColor: color.text, padding: 17, marginTop: 28 }}
-      >
-        <Text
-          className="font-display-medium text-center"
-          style={{ fontSize: 15.5, lineHeight: 15.5, color: color.bg }}
-        >
-          Take the quiz
-        </Text>
-      </Pressable>
-
-      <Pressable
-        onPress={() => router.push("/how-it-works")}
-        className="w-full active:opacity-60"
-        style={{ marginTop: 14 }}
-        hitSlop={8}
-      >
-        <Text
-          className="font-display text-center"
-          style={{ fontSize: 13.5, lineHeight: 13.5 * 1.4, color: color.dim }}
-        >
-          How it works
-        </Text>
-      </Pressable>
+      </ImageBackground>
     </View>
   );
 }

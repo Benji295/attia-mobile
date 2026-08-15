@@ -1,5 +1,28 @@
 import { QuizQuestion } from "../types";
 
+/**
+ * The quiz's five chapters (OAT-101). Ranges are written out ON PURPOSE rather
+ * than derived from Math.floor(i / 3): a 16th question must break loudly — via
+ * the coverage test in __tests__/chapters.test.ts — instead of silently falling
+ * outside every chapter and rendering a blank eyebrow.
+ *
+ * `from`/`to` are ZERO-BASED question indices, inclusive.
+ */
+export type QuizChapter = {
+  id: number;
+  name: string;
+  from: number;
+  to: number;
+};
+
+export const CHAPTERS: QuizChapter[] = [
+  { id: 1, name: "How You Start", from: 0, to: 2 }, // Q1–3
+  { id: 2, name: "What You Keep", from: 3, to: 5 }, // Q4–6
+  { id: 3, name: "How You Move", from: 6, to: 8 }, // Q7–9
+  { id: 4, name: "What Pulls You", from: 9, to: 11 }, // Q10–12
+  { id: 5, name: "How It Lands", from: 12, to: 14 } // Q13–15
+];
+
 export const quizQuestions: QuizQuestion[] = [
   {
     id: "q1",

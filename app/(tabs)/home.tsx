@@ -9,6 +9,7 @@ import { getActivities } from "../../lib/places/fetchActivities";
 import { photoUri, accentFor } from "../../lib/activities/display";
 import { cityLabel } from "../../lib/cities";
 import { color, screen, withAlpha } from "../../lib/theme";
+import { userImageSource } from "../../lib/userImage";
 import { CitySelector } from "../../components/CitySelector";
 import { type Activity } from "../../types";
 import { useAttia } from "../../lib/store";
@@ -114,6 +115,7 @@ export default function Home() {
 
   // ---- POST-QUIZ: Direction C personalized feed ----
   const top = getPersonalityProfile(result.dominant);
+  const avatarImage = userImageSource(result);
 
   const GreetingHeader = (
     <View className="flex-row items-center justify-between mb-6">
@@ -128,12 +130,28 @@ export default function Home() {
           {top.name}
         </Text>
       </View>
-      <View
-        className="rounded-full items-center justify-center"
-style={{ width: 46, height: 46, backgroundColor: withAlpha(top.accent, "washStrong") }}
+      {/* Tapping yourself should take you to yourself. 46x46 already clears the
+          44pt minimum; hitSlop widens it to 62x62. */}
+      <Pressable
+        onPress={() => router.navigate("/profile")}
+        accessibilityRole="button"
+        accessibilityLabel={`Your profile, ${top.name}`}
+        hitSlop={8}
+        className="rounded-full overflow-hidden border border-line items-center justify-center active:opacity-80"
+        style={{ width: 46, height: 46, backgroundColor: withAlpha(top.accent, "washStrong") }}
       >
-        <Ionicons name="person" size={22} color={top.accent} />
-      </View>
+        {avatarImage ? (
+          <Image
+            source={avatarImage}
+            resizeMode="cover"
+            style={StyleSheet.absoluteFill}
+            // The Pressable's label already names the archetype.
+            accessible={false}
+          />
+        ) : (
+          <Ionicons name="person" size={22} color={top.accent} />
+        )}
+      </Pressable>
     </View>
   );
 

@@ -1,8 +1,8 @@
-import { View, Text, Pressable, ScrollView, StyleSheet, Alert } from "react-native";
+import { View, Text, Pressable, ScrollView, StyleSheet, Alert, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import Svg, { Circle } from "react-native-svg";
+import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { useMemo } from "react";
 import { getPersonalityProfile, activityMatchPercentage } from "../../lib/scoring/recommendations";
 import {
@@ -16,8 +16,16 @@ import {
 } from "../../lib/gamification";
 import { activities as seedActivities } from "../../data/activities";
 import { color, screen, withAlpha } from "../../lib/theme";
+import { userImageSource } from "../../lib/userImage";
 import { type Activity } from "../../types";
 import { useAttia } from "../../lib/store";
+
+// Hero geometry (OAT-105). The image is right-anchored; the scrim stays fully
+// opaque past the text column's right edge, so the archetype name never sits on
+// a lit pixel — measured, see the PR. Widen SCRIM_OPAQUE_TO, never dim the image.
+const HERO_IMAGE_WIDTH = "45%";
+const HERO_TEXT_RESERVE = "40%"; // text column ends at 60% of the card
+const SCRIM_OPAQUE_TO = 0.62; // opaque past 60%, then fades to the right edge
 
 const RING = 96;
 const RING_R = 42;
@@ -99,6 +107,7 @@ export default function Profile() {
 
   const top = getPersonalityProfile(result.dominant);
   const accent = top.accent;
+  const heroImage = userImageSource(result);
   const savedCount = saved.length;
   const fullDay = isFullDay(savedCount);
   const xp = computeXp(true, savedCount);
@@ -148,16 +157,50 @@ export default function Profile() {
           Profile
         </Text>
 
-        {/* Hero — accent-tinted, level ring + archetype + streak chip. */}
+        {/* Hero — the archetype made visible: level ring, identity, and the
+            archetype's own image anchored right behind a scrim. The streak pill
+            is gone; the stat grid below already carries Day streak, and the hero
+            should carry identity, not gamification. */}
         <View
-          className="border border-line"
-          style={{
-            borderRadius: 24,
-            padding: 22,
-            backgroundColor: withAlpha(top.accent, "washStrong")
-          }}
+          className="border border-line overflow-hidden"
+          style={{ borderRadius: 24, backgroundColor: withAlpha(top.accent, "washStrong") }}
         >
-          <View className="flex-row items-center">
+          {heroImage && (
+            <>
+              <View
+                pointerEvents="none"
+                style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: HERO_IMAGE_WIDTH }}
+              >
+                <Image
+                  source={heroImage}
+                  resizeMode="cover"
+                  style={StyleSheet.absoluteFill}
+                  // Identity is already stated in text beside it.
+                  accessible={false}
+                />
+              </View>
+              {/* Left-to-right scrim: solid surface across the text column, then
+                  a fade that lets the image through. react-native-svg, because
+                  expo-linear-gradient is not a dependency of this project. */}
+              <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                <Svg width="100%" height="100%">
+                  <Defs>
+                    <LinearGradient id="heroScrim" x1="0" y1="0" x2="1" y2="0">
+                      <Stop offset="0" stopColor={color.surface} stopOpacity={1} />
+                      <Stop offset={SCRIM_OPAQUE_TO} stopColor={color.surface} stopOpacity={1} />
+                      <Stop offset="1" stopColor={color.surface} stopOpacity={0} />
+                    </LinearGradient>
+                  </Defs>
+                  <Rect x="0" y="0" width="100%" height="100%" fill="url(#heroScrim)" />
+                </Svg>
+              </View>
+            </>
+          )}
+
+          <View
+            className="flex-row items-center"
+            style={{ padding: 22, paddingRight: heroImage ? HERO_TEXT_RESERVE : 22 }}
+          >
             <LevelRing progress={progress} level={level} accent={accent} />
             <View className="flex-1 ml-5">
               <Text
@@ -169,15 +212,6 @@ export default function Profile() {
               <Text className="font-display-medium mt-1" style={{ fontSize: 28, color: accent }}>
                 {top.name}
               </Text>
-              <View
-                className="flex-row items-center self-start bg-bg rounded-pill mt-3"
-                style={{ gap: 5, paddingHorizontal: 12, paddingVertical: 6 }}
-              >
-                <Ionicons name="flame" size={14} color={accent} />
-                <Text className="font-display-medium" style={{ fontSize: 12, color: accent }}>
-                  {streak} day{streak === 1 ? "" : "s"} streak
-                </Text>
-              </View>
             </View>
           </View>
         </View>

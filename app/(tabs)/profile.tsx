@@ -1,4 +1,12 @@
-import { View, Text, Pressable, ScrollView, StyleSheet, Alert, Image } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Alert,
+  ImageBackground
+} from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,9 +31,21 @@ import { useAttia } from "../../lib/store";
 // Hero geometry (OAT-105). The image is right-anchored; the scrim stays fully
 // opaque past the text column's right edge, so the archetype name never sits on
 // a lit pixel — measured, see the PR. Widen SCRIM_OPAQUE_TO, never dim the image.
-const HERO_IMAGE_WIDTH = "45%";
-const HERO_TEXT_RESERVE = "40%"; // text column ends at 60% of the card
-const SCRIM_OPAQUE_TO = 0.62; // opaque past 60%, then fades to the right edge
+// Hero (OAT-14, vertical composition). The image is NEVER uniformly veiled —
+// a uniform veil needed alpha 0.885 to pass, which erased the image. Instead the
+// text moves out of the bright band and two VERTICAL scrims darken only the
+// edges, leaving the middle of the image completely untouched.
+//
+// Every value below is measured, not chosen. See the PR for per-archetype
+// ratios; re-run the measurement if the source assets ever change.
+const HERO_H = 210;
+const SCRIM_BOTTOM_ALPHA = 0.76; // worst name contrast 3.67:1 (connoisseur)
+const SCRIM_TOP_ALPHA = SCRIM_BOTTOM_ALPHA / 2;
+const SCRIM_BOTTOM_START = 0.45; // ramp begins
+const SCRIM_BOTTOM_FULL = 0.62; // full strength — must stay BELOW 0.55 of height
+const SCRIM_TOP_CLEAR = 0.25; // top scrim gone by here
+const HERO_RING = 56; // bottom-right, inside the full-strength band
+const HERO_GAP = 12;
 
 const RING = 96;
 const RING_R = 42;
@@ -40,26 +60,43 @@ type Badge = {
   unlock: string;
 };
 
-function LevelRing({ progress, level, accent }: { progress: number; level: number; accent: string }) {
-  const offset = RING_C * (1 - progress / 100);
+function LevelRing({
+  progress,
+  level,
+  accent,
+  size = RING,
+  trackColor = "rgba(0,0,0,0.08)"
+}: {
+  progress: number;
+  level: number;
+  accent: string;
+  size?: number;
+  /** Lifted on the hero, where the track sits over a photograph. */
+  trackColor?: string;
+}) {
+  const scale = size / RING;
+  const r = RING_R * scale;
+  const stroke = Math.max(4, RING_STROKE * scale);
+  const c = 2 * Math.PI * r;
+  const offset = c * (1 - progress / 100);
   return (
-    <View style={{ width: RING, height: RING }} className="items-center justify-center">
-      <Svg width={RING} height={RING} style={StyleSheet.absoluteFill}>
-        <Circle cx={RING / 2} cy={RING / 2} r={RING_R} stroke={color.rule} strokeWidth={RING_STROKE} fill="none" />
+    <View style={{ width: size, height: size }} className="items-center justify-center">
+      <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke={trackColor} strokeWidth={stroke} fill="none" />
         <Circle
-          cx={RING / 2}
-          cy={RING / 2}
-          r={RING_R}
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
           stroke={accent}
-          strokeWidth={RING_STROKE}
+          strokeWidth={stroke}
           fill="none"
-          strokeDasharray={RING_C}
+          strokeDasharray={c}
           strokeDashoffset={offset}
           strokeLinecap="round"
-          transform={`rotate(-90 ${RING / 2} ${RING / 2})`}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </Svg>
-      <Text className="font-display-medium" style={{ fontSize: 19, color: accent }}>
+      <Text className="font-display-medium" style={{ fontSize: 19 * scale, color: accent }}>
         Lv {level}
       </Text>
     </View>
@@ -157,61 +194,104 @@ export default function Profile() {
           Profile
         </Text>
 
-        {/* Hero — the archetype made visible: level ring, identity, and the
-            archetype's own image anchored right behind a scrim. The streak pill
-            is gone; the stat grid below already carries Day streak, and the hero
-            should carry identity, not gamification. */}
+        {/* Hero — vertical composition (OAT-14). The image runs full-bleed and
+            is never uniformly veiled; two vertical scrims darken only the top
+            and bottom edges, so the middle of the image is left completely
+            alone. Content lives inside the scrims, not over the bright band. */}
         <View
           className="border border-line overflow-hidden"
-          style={{ borderRadius: 24, backgroundColor: withAlpha(top.accent, "washStrong") }}
+          style={{ borderRadius: 24, height: HERO_H, backgroundColor: color.surface }}
         >
           {heroImage && (
-            <>
-              <View
-                pointerEvents="none"
-                style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: HERO_IMAGE_WIDTH }}
-              >
-                <Image
-                  source={heroImage}
-                  resizeMode="cover"
-                  style={StyleSheet.absoluteFill}
-                  // Identity is already stated in text beside it.
-                  accessible={false}
-                />
-              </View>
-              {/* Left-to-right scrim: solid surface across the text column, then
-                  a fade that lets the image through. react-native-svg, because
-                  expo-linear-gradient is not a dependency of this project. */}
-              <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-                <Svg width="100%" height="100%">
-                  <Defs>
-                    <LinearGradient id="heroScrim" x1="0" y1="0" x2="1" y2="0">
-                      <Stop offset="0" stopColor={color.surface} stopOpacity={1} />
-                      <Stop offset={SCRIM_OPAQUE_TO} stopColor={color.surface} stopOpacity={1} />
-                      <Stop offset="1" stopColor={color.surface} stopOpacity={0} />
-                    </LinearGradient>
-                  </Defs>
-                  <Rect x="0" y="0" width="100%" height="100%" fill="url(#heroScrim)" />
-                </Svg>
-              </View>
-            </>
+            // ImageBackground, not Image+absoluteFill: react-native-web sizes a
+            // bare Image to its natural dimensions and ignores absoluteFill, so
+            // the photo stopped short of the card edge (OAT-102 hit the same).
+            <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+              <ImageBackground
+                source={heroImage}
+                resizeMode="cover"
+                style={{ width: "100%", height: "100%" }}
+                // Identity is stated in text inside the card.
+                accessible={false}
+              />
+            </View>
           )}
 
+          {/* Accent wash: above the image, below the scrims, so the card still
+              reads as the archetype's colour. */}
           <View
-            className="flex-row items-center"
-            style={{ padding: 22, paddingRight: heroImage ? HERO_TEXT_RESERVE : 22 }}
-          >
-            <LevelRing progress={progress} level={level} accent={accent} />
-            <View className="flex-1 ml-5">
-              <Text
-                className="font-display-semibold text-dim uppercase"
-                style={{ fontSize: 10, letterSpacing: 10 * 0.2 }}
-              >
-                Your archetype
-              </Text>
-              <Text className="font-display-medium mt-1" style={{ fontSize: 28, color: accent }}>
-                {top.name}
-              </Text>
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: withAlpha(top.accent, "washStrong") }
+            ]}
+          />
+
+          {heroImage && (
+            <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+              <Svg width="100%" height="100%">
+                <Defs>
+                  <LinearGradient id="heroTop" x1="0" y1="0" x2="0" y2="1">
+                    <Stop offset="0" stopColor={color.bg} stopOpacity={SCRIM_TOP_ALPHA} />
+                    <Stop offset="1" stopColor={color.bg} stopOpacity={0} />
+                  </LinearGradient>
+                  <LinearGradient id="heroBottom" x1="0" y1="0" x2="0" y2="1">
+                    <Stop offset="0" stopColor={color.bg} stopOpacity={0} />
+                    <Stop
+                      offset={
+                        (SCRIM_BOTTOM_FULL - SCRIM_BOTTOM_START) / (1 - SCRIM_BOTTOM_START)
+                      }
+                      stopColor={color.bg}
+                      stopOpacity={SCRIM_BOTTOM_ALPHA}
+                    />
+                    <Stop offset="1" stopColor={color.bg} stopOpacity={SCRIM_BOTTOM_ALPHA} />
+                  </LinearGradient>
+                </Defs>
+                <Rect
+                  x="0"
+                  y="0"
+                  width="100%"
+                  height={HERO_H * SCRIM_TOP_CLEAR}
+                  fill="url(#heroTop)"
+                />
+                <Rect
+                  x="0"
+                  y={HERO_H * SCRIM_BOTTOM_START}
+                  width="100%"
+                  height={HERO_H * (1 - SCRIM_BOTTOM_START)}
+                  fill="url(#heroBottom)"
+                />
+              </Svg>
+            </View>
+          )}
+
+          {/* Content sits in the bottom scrim: identity left, level right. */}
+          <View style={{ flex: 1, padding: 22, justifyContent: "flex-end" }}>
+            <View className="flex-row items-end" style={{ gap: HERO_GAP }}>
+              <View className="flex-1">
+                <Text
+                  className="font-display-semibold text-dim uppercase"
+                  style={{ fontSize: 10, letterSpacing: 10 * 0.2 }}
+                >
+                  Your archetype
+                </Text>
+                <Text
+                  className="font-display-medium mt-1"
+                  style={{ fontSize: 28, lineHeight: 28 * 1.05, color: accent }}
+                  numberOfLines={2}
+                >
+                  {top.name}
+                </Text>
+              </View>
+              <LevelRing
+                progress={progress}
+                level={level}
+                accent={accent}
+                size={HERO_RING}
+                // Lifted from the default: the track sits over a photograph
+                // here, where the near-black default measured 1.00:1.
+                trackColor="rgba(244,241,236,0.55)"
+              />
             </View>
           </View>
         </View>

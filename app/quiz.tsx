@@ -5,12 +5,23 @@ import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 import { ALPHA, color, screen } from "../lib/theme";
-import { quizQuestions } from "../data/quiz";
+import { CHAPTERS, quizQuestions } from "../data/quiz";
 import { getPersonalityProfile } from "../lib/scoring/recommendations";
-import { MIN_ANSWERS_FOR_TINT, partialLeader, tintLeader } from "../lib/quizProgress";
+import {
+  MIN_ANSWERS_FOR_TINT,
+  chapterForIndex,
+  chapterIndices,
+  chapterToAnnounce,
+  partialLeader,
+  tintLeader
+} from "../lib/quizProgress";
 import { hapticLight } from "../lib/feedback";
 import { prefersReducedMotion } from "../lib/feedback";
-import { trackQuizStarted, trackQuizCompleted } from "../lib/analytics";
+import {
+  trackQuizStarted,
+  trackQuizCompleted,
+  trackQuizChapterReached
+} from "../lib/analytics";
 import { useAttia } from "../lib/store";
 import type { PersonalityId } from "../types";
 
@@ -167,6 +178,7 @@ export default function Quiz() {
 
   const question = quizQuestions[qi];
   const answeredCount = Object.keys(answers).length;
+  const chapter = chapterForIndex(qi);
 
   // PARTIAL SCORING — see lib/quizProgress. No new scoring code: the engine is
   // handed only the questions answered so far.
@@ -180,6 +192,18 @@ export default function Quiz() {
   useEffect(() => {
     trackQuizStarted();
   }, []);
+
+  // quiz_chapter_reached — ONCE per chapter, on entry. Guarded by a ref because
+  // stepping back across a boundary and forward again would otherwise re-fire
+  // and inflate the very counts this exists to measure. Chapter 1 fires on
+  // mount; the Q8 checkpoint holds qi inside chapter 3, so it never re-fires.
+  const chaptersFired = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    const chapter = chapterToAnnounce(qi, chaptersFired.current);
+    if (!chapter) return;
+    chaptersFired.current.add(chapter.id);
+    trackQuizChapterReached({ chapter_id: chapter.id, chapter_name: chapter.name });
+  }, [qi]);
 
   useEffect(() => {
     if (committing === null) return;
@@ -242,11 +266,16 @@ export default function Quiz() {
       <Pressable onPress={back} hitSlop={10}>
         <Ionicons name="chevron-back" size={24} color={color.muted} />
       </Pressable>
-      {/* Chaptered progress: one segment per question, filled in the current
-          leader's accent. */}
-      <View className="flex-1 flex-row" style={{ gap: 3 }}>
-        {quizQuestions.map((q, i) => (
-          <Segment key={q.id} filled={i < answeredCount} tint={tint} />
+      {/* Progress clustered by chapter: five groups, three sub-steps each, a
+          wider gap between groups than within one. Fill and tint are unchanged —
+          a sub-step is filled when its question index is answered. */}
+      <View className="flex-1 flex-row" style={{ gap: 10 }}>
+        {CHAPTERS.map((chapter) => (
+          <View key={chapter.id} className="flex-1 flex-row" style={{ gap: 3 }}>
+            {chapterIndices(chapter).map((i) => (
+              <Segment key={quizQuestions[i].id} filled={i < answeredCount} tint={tint} />
+            ))}
+          </View>
         ))}
       </View>
     </View>
@@ -347,13 +376,19 @@ export default function Quiz() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 12 }}>
         <FadeSlideIn trigger={qi}>
-          {/* The authored set carries no category, so the eyebrow states
-              position rather than inventing one — see the PR. */}
+          {/* Chapter, not a count. The numeric position is gone from the UI but
+              kept for screen readers, where "how far in am I" has no visual
+              substitute. */}
           <Text
             className="font-display-semibold text-dim uppercase mt-7"
             style={{ fontSize: 10, letterSpacing: 10 * 0.2 }}
+            accessibilityLabel={
+              chapter
+                ? `Chapter ${chapter.id}, ${chapter.name}. Question ${qi + 1} of ${quizQuestions.length}.`
+                : `Question ${qi + 1} of ${quizQuestions.length}.`
+            }
           >
-            Question {qi + 1} of {quizQuestions.length}
+            {chapter ? `Chapter ${chapter.id} · ${chapter.name}` : ""}
           </Text>
           <Text
             className="font-display-medium text-text mt-3"

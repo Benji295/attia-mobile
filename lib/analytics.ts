@@ -49,6 +49,14 @@ export function trackQuizCompleted(archetype: string): void {
   track("quiz_completed", { archetype });
 }
 
+/**
+ * Fired once per chapter, on entry (OAT-101). This is the abandonment signal:
+ * where the funnel drops between chapter 1 and chapter 5.
+ */
+export function trackQuizChapterReached(p: { chapter_id: number; chapter_name: string }): void {
+  track("quiz_chapter_reached", p);
+}
+
 export function trackArchetypeRevealed(archetype: string): void {
   track("archetype_revealed", { archetype });
 }

@@ -1,5 +1,6 @@
 import PostHog from "posthog-react-native";
-import { POSTHOG_KEY, POSTHOG_HOST } from "./config";
+import { ATTIA_ENV, POSTHOG_KEY, POSTHOG_HOST } from "./config";
+import { planAnalytics } from "./analyticsEnv";
 import { isHighMatch } from "./feedback";
 
 // Single source for product analytics (same pattern as lib/feedback.ts): screens
@@ -9,15 +10,37 @@ import { isHighMatch } from "./feedback";
 // PRIVACY: anonymous, device-level only. No identify(), no names/emails — we have
 // no accounts. Autocapture + session replay are disabled (provider + options), so
 // the only events sent are the explicit ones below.
-export const posthog = new PostHog(POSTHOG_KEY, {
-  host: POSTHOG_HOST,
-  enableSessionReplay: false
-});
+//
+// BUCKETS (OAT-94): dev logs and sends nothing; preview and production each get
+// their own project key from the environment. Event names and payloads are
+// untouched — this is plumbing.
+const plan = planAnalytics(ATTIA_ENV, POSTHOG_KEY);
+
+if (plan.mode === "disabled") {
+  // Loud on purpose. A silent analytics failure is how a release ships with no
+  // data and nobody noticing until someone asks for the funnel.
+  console.warn(plan.warning);
+}
+
+/**
+ * The client, or null when nothing should be sent. Null in development so no
+ * client is ever constructed there — not merely muted, absent, so lifecycle or
+ * feature-flag traffic cannot leak into a real project either.
+ */
+export const posthog =
+  plan.mode === "send"
+    ? new PostHog(plan.key, { host: POSTHOG_HOST, enableSessionReplay: false })
+    : null;
 
 type EventProps = Record<string, string | number | boolean | null>;
 
 /** Low-level passthrough. Prefer the named helpers below. */
 export function track(event: string, props?: EventProps): void {
+  if (!posthog) {
+    // Dev: the call site stays verifiable without anything leaving the device.
+    if (plan.mode === "console") console.log(`[attia analytics] ${event}`, props ?? {});
+    return;
+  }
   posthog.capture(event, props);
 }
 

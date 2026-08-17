@@ -1,5 +1,5 @@
 import "../global.css";
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -22,6 +22,16 @@ import { posthog } from "../lib/analytics";
 // is where it actually gets loaded.
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
+/** Wraps in PostHogProvider only when a client exists. */
+function MaybePostHog({ children }: { children: ReactNode }) {
+  if (!posthog) return <>{children}</>;
+  return (
+    <PostHogProvider client={posthog} autocapture={false}>
+      {children}
+    </PostHogProvider>
+  );
+}
+
 export default function RootLayout() {
   // The package ships static weights, so each weight is its own family. See
   // lib/tokens.js `font` for how these map to the font-display-* classes.
@@ -42,8 +52,10 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       {/* Explicit events only — autocapture off (screens/touches/lifecycle),
-          session replay off (in the client options). */}
-      <PostHogProvider client={posthog} autocapture={false}>
+          session replay off (in the client options). The provider is skipped
+          entirely when there is no client (development, or a misconfigured
+          non-dev build) — see lib/analyticsEnv. */}
+      <MaybePostHog>
         <SafeAreaProvider>
           <AttiaProvider>
             {/* Light glyphs: the app is dark now, so "dark" icons vanish. */}
@@ -58,7 +70,7 @@ export default function RootLayout() {
             />
           </AttiaProvider>
         </SafeAreaProvider>
-      </PostHogProvider>
+      </MaybePostHog>
     </GestureHandlerRootView>
   );
 }

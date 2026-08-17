@@ -4,14 +4,15 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Alert,
-  ImageBackground
+  ImageBackground,
+  Modal,
+  TextInput
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from "react-native-svg";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { getPersonalityProfile, activityMatchPercentage } from "../../lib/scoring/recommendations";
 import {
   computeXp,
@@ -24,6 +25,7 @@ import {
 } from "../../lib/gamification";
 import { activities as seedActivities } from "../../data/activities";
 import { color, screen, withAlpha } from "../../lib/theme";
+import { RESET_PHRASE, isResetConfirmed, resetSummary } from "../../lib/dangerZone";
 import { userImageSource } from "../../lib/userImage";
 import { type Activity } from "../../types";
 import { useAttia } from "../../lib/store";
@@ -111,6 +113,12 @@ export default function Profile() {
   // Resolve saved ids -> activities from the live cache (seed fallback) for the
   // "Perfect match" badge. Deliberately GLOBAL (every city): XP, level, streak
   // and badges are a cumulative per-user score, never scoped to a trip.
+  // Danger-zone modal state. Declared with the other hooks, ABOVE the
+  // no-result early return below — putting them after it changed the hook count
+  // between renders and crashed Profile with React error #310.
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetInput, setResetInput] = useState("");
+
   const savedActivities = useMemo(() => {
     const byId: Record<string, Activity> = {};
     for (const a of seedActivities) byId[a.id] = a;
@@ -370,11 +378,10 @@ className="font-display-medium mt-2"
           ))}
         </View>
 
-        {/* Actions.
-            These were ONE button until OAT-93: "Retake the quiz" called reset(),
-            which silently deleted every save, badge and explored city. Retaking
-            a quiz is not a request to delete your trip, so the two are now
-            separate — and the destructive one says what it destroys. */}
+        {/* Actions. "Retake the quiz" is UNCHANGED (OAT-93): it clears the
+            result only, and must never reach reset(). The destructive action no
+            longer sits beside it — see the danger zone at the foot of the
+            screen. */}
         <Pressable
           onPress={() => {
             clearResult(); // result only — saves, badges, streak, cities survive
@@ -388,40 +395,132 @@ className="font-display-medium mt-2"
           </Text>
         </Pressable>
 
-        {/* Visually secondary, and gated behind a confirmation that names the
-            losses rather than asking a vague "are you sure?". */}
-        <Pressable
-          onPress={() =>
-            Alert.alert(
-              "Reset everything?",
-              "This deletes your saved places, your badges, the cities you have explored, and your quiz result. It cannot be undone.",
-              [
-                { text: "Cancel", style: "cancel" },
-                {
-                  text: "Reset everything",
-                  style: "destructive",
-                  onPress: () => {
-                    reset();
-                    router.replace("/");
-                  }
-                }
-              ]
-            )
-          }
-          className="mt-3 active:opacity-60"
-          hitSlop={8}
-        >
-          <Text className="font-display text-dim text-center" style={{ fontSize: 12.5 }}>
-            Reset everything
-          </Text>
-        </Pressable>
-
         <Pressable onPress={() => router.push("/how-it-works")} className="mt-4 active:opacity-60" hitSlop={8}>
           <Text className="font-display text-dim text-center" style={{ fontSize: 13 }}>
             How ATTIA works
           </Text>
         </Pressable>
+
+        {/* DANGER ZONE — deliberately the last thing on the screen, separated by
+            a hairline, and nowhere near "Retake the quiz". This action wiped a
+            tester's saves once because the two were dressed identically and one
+            tap apart. Red label, never a filled red button: filled red on dark
+            is loud enough that people press it to find out what it does. */}
+        <View className="mt-10" style={{ borderTopWidth: 1, borderTopColor: color.rule }} />
+        <Text
+          className="font-display-semibold uppercase mt-5"
+          style={{ fontSize: 10, letterSpacing: 10 * 0.2, color: color.dim }}
+        >
+          Danger zone
+        </Text>
+        <Pressable
+          onPress={() => {
+            setResetInput("");
+            setResetOpen(true);
+          }}
+          className="mt-3 active:opacity-60"
+          hitSlop={8}
+        >
+          <Text className="font-display" style={{ fontSize: 13.5, color: color.danger }}>
+            Reset everything
+          </Text>
+        </Pressable>
+        <Text className="font-display text-dim mt-1.5" style={{ fontSize: 11.5 }}>
+          Deletes your saves, badges and quiz result. This cannot be undone.
+        </Text>
       </ScrollView>
+
+      {/* Type-to-confirm. A yes/no dialog is answered reflexively; typing RESET
+          cannot be. The sentence names what actually dies, with counts read live
+          from the store, so consent is given on true terms. */}
+      <Modal
+        visible={resetOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setResetOpen(false)}
+      >
+        <View
+          className="flex-1 items-center justify-center"
+          style={{ backgroundColor: "rgba(13,13,15,0.86)", paddingHorizontal: screen.x }}
+        >
+          <View
+            className="w-full bg-surface border border-line rounded-card"
+            style={{ padding: 22 }}
+          >
+            <Text
+              className="font-display-medium text-text"
+              style={{ fontSize: 20, lineHeight: 20 * 1.25 }}
+            >
+              Reset everything?
+            </Text>
+            <Text
+              className="font-display text-body mt-3"
+              style={{ fontSize: 14, lineHeight: 14 * 1.55 }}
+            >
+              {resetSummary({
+                savedPlaces: saved.length,
+                plannedStops: savedCount,
+                citiesExplored: citiesExplored.length,
+                archetype: result ? top.name.replace(/^The /, "") : null
+              })}
+            </Text>
+
+            <Text
+              className="font-display-semibold text-dim uppercase mt-5"
+              style={{ fontSize: 10, letterSpacing: 10 * 0.2 }}
+            >
+              Type {RESET_PHRASE} to confirm
+            </Text>
+            <TextInput
+              value={resetInput}
+              onChangeText={setResetInput}
+              // Case-sensitive on purpose: the shift key is part of the friction.
+              autoCapitalize="none"
+              autoCorrect={false}
+              spellCheck={false}
+              accessibilityLabel={`Type ${RESET_PHRASE} to confirm`}
+              placeholder={RESET_PHRASE}
+              placeholderTextColor={color["faint-2"]}
+              className="font-display bg-surface-raised border border-line rounded-option mt-2"
+              style={{ padding: 14, fontSize: 15, color: color.text }}
+            />
+
+            {/* Cancel is the dominant action. The destructive one stays a plain
+                red label, disabled until the word matches exactly. */}
+            <Pressable
+              onPress={() => setResetOpen(false)}
+              className="w-full rounded-list active:opacity-80 mt-5"
+              style={{ backgroundColor: color.text, padding: 16 }}
+            >
+              <Text
+                className="font-display-medium text-center"
+                style={{ fontSize: 15.5, color: color.bg }}
+              >
+                Cancel
+              </Text>
+            </Pressable>
+
+            <Pressable
+              disabled={!isResetConfirmed(resetInput)}
+              onPress={() => {
+                setResetOpen(false);
+                reset();
+                router.replace("/");
+              }}
+              className="w-full active:opacity-60 mt-3"
+              style={{ padding: 12, opacity: isResetConfirmed(resetInput) ? 1 : 0.4 }}
+              hitSlop={8}
+            >
+              <Text
+                className="font-display text-center"
+                style={{ fontSize: 13.5, color: color.danger }}
+              >
+                Reset everything
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

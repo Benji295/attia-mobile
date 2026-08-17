@@ -143,7 +143,9 @@ export default function Home() {
         {avatarImage ? (
           <Image
             source={avatarImage}
-            resizeMode="cover"
+            // expo-image's own prop; `resizeMode` is React Native's and only
+            // works here via a deprecated compatibility shim.
+            contentFit="cover"
             style={StyleSheet.absoluteFill}
             // The Pressable's label already names the archetype.
             accessible={false}

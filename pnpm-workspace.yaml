@@ -4,6 +4,10 @@ nodeLinker: hoisted
 
 allowBuilds:
   msgpackr-extract: false
+  # eslint-import-resolver-typescript's native resolver (OAT-92). pnpm blocks
+  # build scripts by default; leaving this unanswered is what made `expo lint`
+  # fail on install before this ticket.
+  unrs-resolver: true
 
 minimumReleaseAgeExclude:
   - expo-file-system@56.0.8

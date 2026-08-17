@@ -193,7 +193,15 @@ export default function Welcome() {
       <ImageBackground
         source={AMBIENCE}
         resizeMode="cover"
-        style={{ flex: 1 }}
+        // Explicit 100%, NOT flex:1. react-native-web sizes an ImageBackground
+        // from the image's intrinsic dimensions unless it is given a definite
+        // width and height — flex:1 computed to `flex: 0 0 auto` and the
+        // wrapper became 1290x2796 (the JPEG's pixel size), absolutely
+        // positioned at 0,0. The ambience was painted the whole time; on a
+        // 606x736 viewport you only ever saw its near-black top-left corner,
+        // which read as "the background does not render". Same root cause as
+        // the Image+absoluteFill failures in OAT-102 and OAT-14.
+        style={{ width: "100%", height: "100%" }}
         // The ambience is atmosphere, not information — the screen reads
         // identically without it.
         accessible={false}

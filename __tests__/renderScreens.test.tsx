@@ -8,7 +8,16 @@ import Discover from "../app/(tabs)/discover";
 import Saved from "../app/(tabs)/saved";
 import Itinerary from "../app/(tabs)/itinerary";
 import Profile from "../app/(tabs)/profile";
-import { renderScreen, seedEmpty, seedWithResult, textOf } from "./renderScreen";
+import {
+  liveActivities,
+  renderOverlay,
+  renderScreen,
+  seedEmpty,
+  seedWithResult,
+  textOf,
+  unmountActed
+} from "./renderScreen";
+import { placeBody, streetAddress } from "../lib/activities/placeDetail";
 
 /**
  * Render smoke tests (OAT-92).
@@ -91,5 +100,78 @@ describe("the two redirect states mount without throwing", () => {
     const r = await renderScreen(Results);
     expect(() => r.toJSON()).not.toThrow();
     r.unmount();
+  });
+});
+
+/**
+ * OAT-44 — the place detail overlay, in both states.
+ *
+ * The overlay is pure state inside Discover: mounted or not. So "closed" is
+ * asserted on Discover (its affordances must be absent), and "open" is asserted
+ * by mounting the overlay itself with a real activity.
+ *
+ * The rating-fallback case gets its own render because that is the one that
+ * looks broken if it regresses — 3 of the 60 live activities have no editorial
+ * summary, and setting their rating string as a paragraph reads as leaked data.
+ */
+describe("place detail overlay (OAT-44)", () => {
+  const live = liveActivities();
+  const prose = live.find((a) => placeBody(a)?.kind === "prose")!;
+  const rating = live.find((a) => placeBody(a)?.kind === "rating")!;
+
+  it("is CLOSED on Discover — no detail affordances leak into the deck", async () => {
+    await seedWithResult();
+    const r = await renderScreen(Discover);
+    const text = textOf(r);
+    expect(text).toContain("Discover");
+    expect(text).not.toContain("Open in Maps");
+    await unmountActed(r);
+  });
+
+  it("is OPEN: renders the title, body, address and both actions", async () => {
+    const r = await renderOverlay(prose);
+    const text = textOf(r);
+    expect(text.trim().length).toBeGreaterThan(0);
+    expect(text).toContain(prose.title);
+    expect(text).toContain(prose.category);
+    expect(text).toContain(prose.priceLevel);
+    expect(text).toContain(prose.descriptionShort); // the body, at reading size
+    expect(text).toContain(streetAddress(prose)!);
+    expect(text).toContain("Open in Maps");
+    expect(text).toContain("Save");
+    await unmountActed(r);
+  });
+
+  it("shows Saved rather than Save once the place is saved", async () => {
+    const r = await renderOverlay(prose, { isSaved: true });
+    expect(textOf(r)).toContain("Saved");
+    await unmountActed(r);
+  });
+
+  it("degrades gracefully for the 3/60 with no editorial prose", async () => {
+    const r = await renderOverlay(rating);
+    const text = textOf(r);
+    const body = placeBody(rating);
+    if (body?.kind !== "rating") throw new Error("expected a rating body");
+    // The type and the rating are shown as separate fields...
+    expect(text).toContain(body.placeType);
+    expect(text).toContain(body.rating);
+    // ...and never as the raw "· 4.8★ (34,270 reviews)" sentence.
+    expect(text).not.toContain("★");
+    expect(text).toContain("Open in Maps");
+    await unmountActed(r);
+  });
+
+  it("carries NONE of the excluded rank claims (OAT-107/108)", async () => {
+    for (const a of [prose, rating]) {
+      const r = await renderOverlay(a);
+      const text = textOf(r);
+      expect(text).not.toContain("Top match");
+      expect(text).not.toContain("% match");
+      expect(text).not.toContain("Highly Rated");
+      // neighborhood is 43/60 just the city name — excluded by the brief.
+      expect(text).not.toContain(`${a.neighborhood} · `);
+      await unmountActed(r);
+    }
   });
 });

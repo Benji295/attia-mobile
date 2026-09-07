@@ -2,7 +2,6 @@ import { View, Text, Pressable, Dimensions, StyleSheet, ActivityIndicator } from
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -21,7 +20,6 @@ import Animated, {
 import ConfettiCannon from "react-native-confetti-cannon";
 import { rankActivities, getPersonalityProfile, matchReason } from "../../lib/scoring/recommendations";
 import { getActivities } from "../../lib/places/fetchActivities";
-import { photoUri, accentFor } from "../../lib/activities/display";
 import { computeXp, levelInfo, firesItineraryBuilt, FULL_DAY_MIN_STOPS } from "../../lib/gamification";
 import { hapticLight, hapticSuccess, isHighMatch, prefersReducedMotion } from "../../lib/feedback";
 import {
@@ -35,7 +33,9 @@ import { cityLabel } from "../../lib/cities";
 import { color, screen } from "../../lib/theme";
 import { CitySelector } from "../../components/CitySelector";
 import { DiscoverFilters, DEFAULT_FILTERS, type Filters, type FilterDim } from "../../components/DiscoverFilters";
-import { type Activity } from "../../types";
+import { ActivityCard } from "../../components/ActivityCard";
+import { PlaceDetailOverlay } from "../../components/PlaceDetailOverlay";
+import { type Activity, type RankedActivity } from "../../types";
 import { useAttia } from "../../lib/store";
 
 const SCREEN_W = Dimensions.get("window").width;
@@ -50,26 +50,17 @@ const CELEBRATE_COLORS = [
   color.brand
 ];
 
-// UI-only mapping from activity category to an Ionicons glyph (photo fallback).
-const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
-  "Water Activities": "water-outline",
-  "Wine Bars": "wine-outline",
-  Art: "color-palette-outline",
-  Rooftops: "business-outline",
-  Dining: "restaurant-outline",
-  "Food Tours": "fast-food-outline",
-  "Outdoor Sports": "bicycle-outline",
-  "Shared Tables": "people-outline",
-  "City Guides": "map-outline",
-  Performance: "musical-notes-outline"
-};
-
 export default function Discover() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { result, saved, activeSaved, cityId, toggleSave, isSaved, cacheActivities } = useAttia();
   const [ci, setCi] = useState(0);
   const translateX = useSharedValue(0);
+  /**
+   * The open place detail (OAT-44). Pure state — the overlay is mounted or it
+   * is not. No route, no sheet library, no animation gates its visibility.
+   */
+  const [detail, setDetail] = useState<RankedActivity | null>(null);
 
   // Live data state.
   const [data, setData] = useState<Activity[] | null>(null);
@@ -282,35 +273,43 @@ export default function Discover() {
     setCi(0);
   }
 
+  /**
+   * Toggle a save, with its analytics and celebration — and NOTHING about the
+   * deck (OAT-44). The detail overlay saves the card the user is reading, which
+   * must not also skip it; advance() owns moving the deck on, this owns the save.
+   */
+  function saveActivity(activity: Activity, match: number) {
+    const id = activity.id;
+    const wasSaved = isSaved(id);
+    toggleSave(id); // stamps the active city at write time
+    // Celebrate + track only an actual ADD (not an un-save of a re-encounter).
+    if (wasSaved) return;
+    // GLOBAL — XP, level and the Collector badge are a cumulative per-user
+    // score, and the celebration escalates on the same count so a toast can
+    // never contradict what Profile shows.
+    const beforeCount = saved.length;
+    // PER-CITY — a plan lives in one city (see firesItineraryBuilt).
+    const beforeInCity = activeSaved.length;
+    celebrateSave(match, beforeCount);
+    trackActivitySaved({
+      activityId: id,
+      category: activity.category,
+      matchPercent: match,
+      matchTier: matchTier(match, ranked.map((r) => r.match)),
+      city: cityId,
+      cityId
+    });
+    // itinerary_built once, on this city's 2 -> 3 transition. Three saves
+    // spread across three cities is not a plan and must not fire it.
+    if (firesItineraryBuilt(beforeInCity)) trackItineraryBuilt(beforeInCity + 1);
+  }
+
   function advance(save: boolean) {
     if (ranItem) {
-      const id = ranItem.activity.id;
       if (save) {
-        const wasSaved = isSaved(id);
-        toggleSave(id); // stamps the active city at write time
-        // Celebrate + track only an actual ADD (not an un-save of a re-encounter).
-        if (!wasSaved) {
-          // GLOBAL — XP, level and the Collector badge are a cumulative per-user
-          // score, and the celebration escalates on the same count so a toast can
-          // never contradict what Profile shows.
-          const beforeCount = saved.length;
-          // PER-CITY — a plan lives in one city (see firesItineraryBuilt).
-          const beforeInCity = activeSaved.length;
-          celebrateSave(ranItem.match, beforeCount);
-          trackActivitySaved({
-            activityId: id,
-            category: ranItem.activity.category,
-            matchPercent: ranItem.match,
-            matchTier: matchTier(ranItem.match, ranked.map((r) => r.match)),
-            city: cityId,
-            cityId
-          });
-          // itinerary_built once, on this city's 2 -> 3 transition. Three saves
-          // spread across three cities is not a plan and must not fire it.
-          if (firesItineraryBuilt(beforeInCity)) trackItineraryBuilt(beforeInCity + 1);
-        }
+        saveActivity(ranItem.activity, ranItem.match);
       } else {
-        trackActivitySkipped({ activityId: id, matchPercent: ranItem.match });
+        trackActivitySkipped({ activityId: ranItem.activity.id, matchPercent: ranItem.match });
       }
     }
     setCi((c) => c + 1);
@@ -416,74 +415,26 @@ export default function Discover() {
         <>
           <GestureDetector gesture={pan}>
             <Animated.View style={[{ flex: 1 }, cardStyle]}>
-              <View className="flex-1 bg-surface border border-line rounded-card overflow-hidden">
-                <View className="flex-1 items-center justify-center" style={{ backgroundColor: color.rule }}>
-                  {/* Icon fallback sits underneath; the photo covers it when it loads. */}
-                  <Ionicons
-                    name={CATEGORY_ICON[ranItem.activity.category] ?? "sparkles-outline"}
-                    size={56}
-                    color={accentFor(ranItem.activity)}
-                  />
-                  {photoUri(ranItem.activity) && (
-                    <Image
-                      source={{ uri: photoUri(ranItem.activity)! }}
-                      style={StyleSheet.absoluteFill}
-                      contentFit="cover"
-                      transition={150}
-                    />
-                  )}
-                  <View
-                    className="absolute top-3 right-3 rounded-pill"
-                    style={{ backgroundColor: color.bg, paddingHorizontal: 10, paddingVertical: 5 }}
-                  >
-                    <Text
-                      className="font-display-semibold"
-                      style={{ fontSize: 11, color: accentFor(ranItem.activity) }}
-                    >
-                      {ranItem.match}% match
-                    </Text>
-                  </View>
-
-                  {/* Directional drag cues — only the relevant one fades in. */}
-                  <Animated.View style={[{ position: "absolute", top: 12, left: 12 }, saveCueStyle]}>
-                    <Ionicons name="checkmark-circle" size={42} color={SAVE_CUE_COLOR} />
-                  </Animated.View>
-                  <Animated.View style={[{ position: "absolute", top: 12, left: 12 }, skipCueStyle]}>
-                    <Ionicons name="close-circle" size={42} color={color.dim} />
-                  </Animated.View>
-                </View>
-                <View className="px-4 py-4">
-                  {isHighMatch(ranItem.match, ranked.map((r) => r.match)) && (
-                    <View
-                      className="flex-row items-center self-start rounded-full px-2 py-0.5 mb-2"
-                      style={{ backgroundColor: getPersonalityProfile(result.dominant).accentSoft }}
-                    >
-                      <Ionicons name="star" size={11} color={getPersonalityProfile(result.dominant).accent} />
-                      <Text
-                        className="text-[11px] font-medium ml-1"
-                        style={{ color: getPersonalityProfile(result.dominant).accent }}
-                      >
-                        Top match for you
-                      </Text>
-                    </View>
-                  )}
-                  <Text
-                    className="font-display-medium text-text"
-                    style={{ fontSize: 18, lineHeight: 18 * 1.22 }}
-                  >
-                    {ranItem.activity.title}
-                  </Text>
-                  <Text className="font-display text-muted mt-1" style={{ fontSize: 11.5 }}>
-                    {ranItem.activity.neighborhood} · {ranItem.activity.category} · {ranItem.activity.priceLevel}
-                  </Text>
-                  <Text
-                    className="font-display text-body mt-3"
-                    style={{ fontSize: 13, lineHeight: 13 * 1.5 }}
-                  >
-                    {matchReason(ranItem.activity, result.dominant)}
-                  </Text>
-                </View>
-              </View>
+              <ActivityCard
+                activity={ranItem.activity}
+                match={ranItem.match}
+                highlight={isHighMatch(ranItem.match, ranked.map((r) => r.match))}
+                highlightAccent={getPersonalityProfile(result.dominant).accent}
+                highlightAccentSoft={getPersonalityProfile(result.dominant).accentSoft}
+                reason={matchReason(ranItem.activity, result.dominant)}
+                onPress={() => setDetail(ranItem)}
+                photoOverlay={
+                  <>
+                    {/* Directional drag cues — only the relevant one fades in. */}
+                    <Animated.View style={[{ position: "absolute", top: 12, left: 12 }, saveCueStyle]}>
+                      <Ionicons name="checkmark-circle" size={42} color={SAVE_CUE_COLOR} />
+                    </Animated.View>
+                    <Animated.View style={[{ position: "absolute", top: 12, left: 12 }, skipCueStyle]}>
+                      <Ionicons name="close-circle" size={42} color={color.dim} />
+                    </Animated.View>
+                  </>
+                }
+              />
             </Animated.View>
           </GestureDetector>
 
@@ -591,6 +542,20 @@ className="flex-row items-center rounded-pill"
             </Text>
           </View>
         </Animated.View>
+      )}
+
+      {/* Place detail (OAT-44). An in-place overlay gated purely on state —
+          no route, no sheet library, nothing behind an animation callback.
+          Saving from here uses saveActivity, so the card underneath is NOT
+          skipped: the user stays exactly where they were. */}
+      {detail && (
+        <PlaceDetailOverlay
+          activity={detail.activity}
+          reason={matchReason(detail.activity, result.dominant)}
+          isSaved={isSaved(detail.activity.id)}
+          onSave={() => saveActivity(detail.activity, detail.match)}
+          onClose={() => setDetail(null)}
+        />
       )}
 
       {/* Tier 2 — particle burst around the card (skipped under Reduce Motion). */}

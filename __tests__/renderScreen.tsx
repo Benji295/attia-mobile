@@ -5,6 +5,10 @@ import { quizQuestions } from "../data/quiz";
 import { scoreQuiz } from "../lib/scoring/recommendations";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AttiaProvider } from "../lib/store";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { PlaceDetailOverlay } from "../components/PlaceDetailOverlay";
+import type { Activity } from "../types";
 
 /** Real metrics rather than a mocked hook — the padding maths is real code. */
 const METRICS = {
@@ -88,4 +92,52 @@ export function textOf(renderer: TestRenderer.ReactTestRenderer): string {
   const json = renderer.toJSON();
   (Array.isArray(json) ? json : [json]).forEach(walk);
   return out.join(" ");
+}
+
+/**
+ * The real captured proxy payload (OAT-108), so overlay tests run against the
+ * data the screen will actually receive rather than an invented activity.
+ */
+export function liveActivities(): Activity[] {
+  const fixture = join(__dirname, "..", "scripts", "data", "live-activities.json");
+  const capture = JSON.parse(readFileSync(fixture, "utf8")) as {
+    cities: Record<string, { activities: Activity[] }>;
+  };
+  return Object.values(capture.cities).flatMap((c) => c.activities);
+}
+
+/**
+ * Mount the place detail overlay on its own (OAT-44).
+ *
+ * Rendered directly rather than by driving Discover's state: the overlay's
+ * visibility is pure state with no animation gate, so mounting it IS the open
+ * state. No provider is needed — it takes everything it renders as props.
+ */
+export async function renderOverlay(
+  activity: Activity,
+  opts: { isSaved?: boolean; reason?: string } = {}
+) {
+  let renderer!: TestRenderer.ReactTestRenderer;
+  await act(async () => {
+    renderer = TestRenderer.create(
+      <SafeAreaProvider initialMetrics={METRICS}>
+        <PlaceDetailOverlay
+          activity={activity}
+          reason={opts.reason}
+          isSaved={opts.isSaved ?? false}
+          onSave={() => {}}
+          onClose={() => {}}
+        />
+      </SafeAreaProvider>
+    );
+  });
+  await act(async () => {});
+  return renderer;
+}
+
+/** Unmount inside act(), so animation cleanup never trips the act warning. */
+export async function unmountActed(r: TestRenderer.ReactTestRenderer) {
+  await act(async () => {
+    r.unmount();
+  });
 }

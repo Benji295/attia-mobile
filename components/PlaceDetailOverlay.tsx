@@ -14,6 +14,20 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { photoUri } from "../lib/activities/display";
+import {
+  HERO_H,
+  HERO_PAD,
+  SCRIM_BOTTOM_ALPHA,
+  SCRIM_BOTTOM_START,
+  SCRIM_TOP_ALPHA,
+  SCRIM_TOP_CLEAR,
+  SUBTITLE_GAP,
+  SUBTITLE_LINE_HEIGHT,
+  SUBTITLE_SIZE,
+  TITLE_LINE_HEIGHT,
+  TITLE_SIZE,
+  bottomScrimStops
+} from "../lib/activities/heroScrim";
 import { mapsUrl, placeBody, streetAddress } from "../lib/activities/placeDetail";
 import { color, screen } from "../lib/theme";
 import type { Activity } from "../types";
@@ -32,20 +46,29 @@ import type { Activity } from "../types";
  * STATE FIRST, ANIMATION AS DECORATION. Visibility is pure state — the parent
  * mounts this or does not. The only animation is a 24px settle on the sheet,
  * and its start value is the *visible* position offset, so if the animation
- * never runs (as Reanimated's value updates do not on web) the sheet is simply
- * 24px lower and everything still works. Nothing here is reachable only from an
- * animation callback.
+ * never runs the sheet is simply 24px lower and everything still works.
+ * Nothing here is reachable only from an animation callback, and nothing reads
+ * an animated value back from JS. That second part matters on web: OAT-110
+ * showed Reanimated's completion callbacks DO fire there (finished=true), but
+ * reading a shared value's .value from the JS thread returns its initial value.
+ * Not depending on either keeps the design correct on every platform.
+ *
+ * SIZED TO ITS CONTENT, ANCHORED TO THE BOTTOM. The sheet is exactly as tall
+ * as what is in it — hero, body, address, actions — with Discover visible and
+ * dimmed above it. It is capped at the screen minus SHEET_TOP_GAP; past that
+ * the body scrolls and the hero never shrinks. No fixed height, no measuring
+ * pass: flexShrink on the sheet and flexGrow: 0 on the ScrollView let Yoga
+ * (and the browser) size it in a single layout.
  */
 
-// Scrim geometry — read from app/(tabs)/profile.tsx (OAT-14), not re-derived.
-// Those alphas were measured against the archetype art to keep text legible
-// without veiling the image; the same two-band treatment applies here.
-const HERO_H = 260;
-const SCRIM_BOTTOM_ALPHA = 0.76;
-const SCRIM_TOP_ALPHA = SCRIM_BOTTOM_ALPHA / 2;
-const SCRIM_BOTTOM_START = 0.45;
-const SCRIM_BOTTOM_FULL = 0.62;
-const SCRIM_TOP_CLEAR = 0.25;
+// Hero and scrim geometry lives in lib/activities/heroScrim.ts, where a test
+// holds it to the contrast it was measured for. It began as profile.tsx's
+// two-band treatment (OAT-14) and diverges on purpose — see that module's
+// header. BOTTOM_STOPS is the same geometry mapped onto the bottom <Rect>'s
+// own span, since an SVG gradient's offsets are relative to its shape.
+const BOTTOM_STOPS = bottomScrimStops();
+/** The sheet never comes within this of the top of the screen. */
+const SHEET_TOP_GAP = 64;
 
 export type PlaceDetailOverlayProps = {
   activity: Activity;
@@ -108,7 +131,7 @@ export function PlaceDetailOverlay({
   };
 
   return (
-    <View style={StyleSheet.absoluteFill} accessibilityViewIsModal>
+    <View style={[StyleSheet.absoluteFill, { justifyContent: "flex-end" }]} accessibilityViewIsModal>
       {/* Tap outside to dismiss. */}
       <Pressable
         onPress={onClose}
@@ -117,18 +140,21 @@ export function PlaceDetailOverlay({
         style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.62)" }]}
       />
 
+      {/* Content-sized: no flex: 1. flexShrink lets it yield to SHEET_TOP_GAP
+          when the content is taller than the screen, and the ScrollView's
+          flexGrow: 0 keeps it from claiming space the content does not need. */}
       <Animated.View
         style={{
-          flex: 1,
-          marginTop: 64,
+          marginTop: SHEET_TOP_GAP,
+          flexShrink: 1,
           transform: [{ translateY: settle }]
         }}
       >
         <View
-          className="flex-1 bg-bg border border-line overflow-hidden"
-          style={{ borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
+          className="bg-bg border border-line overflow-hidden"
+          style={{ borderTopLeftRadius: 24, borderTopRightRadius: 24, flexShrink: 1 }}
         >
-          <ScrollView contentContainerStyle={{ paddingBottom: 28 }}>
+          <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={{ paddingBottom: 28 }}>
             {/* Hero — full-bleed photo, two vertical scrims, image untouched. */}
             <View style={{ height: HERO_H, backgroundColor: color.rule }}>
               {uri ? (
@@ -152,14 +178,13 @@ export function PlaceDetailOverlay({
                       <Stop offset="0" stopColor={color.bg} stopOpacity={SCRIM_TOP_ALPHA} />
                       <Stop offset="1" stopColor={color.bg} stopOpacity={0} />
                     </LinearGradient>
+                    {/* Three zones: clear -> 0.76 under the title lines -> opaque
+                        under the subtitle, where muted text needs the photo gone. */}
                     <LinearGradient id="placeBottom" x1="0" y1="0" x2="0" y2="1">
                       <Stop offset="0" stopColor={color.bg} stopOpacity={0} />
-                      <Stop
-                        offset={(SCRIM_BOTTOM_FULL - SCRIM_BOTTOM_START) / (1 - SCRIM_BOTTOM_START)}
-                        stopColor={color.bg}
-                        stopOpacity={SCRIM_BOTTOM_ALPHA}
-                      />
-                      <Stop offset="1" stopColor={color.bg} stopOpacity={SCRIM_BOTTOM_ALPHA} />
+                      <Stop offset={BOTTOM_STOPS.full} stopColor={color.bg} stopOpacity={SCRIM_BOTTOM_ALPHA} />
+                      <Stop offset={BOTTOM_STOPS.opaque} stopColor={color.bg} stopOpacity={1} />
+                      <Stop offset="1" stopColor={color.bg} stopOpacity={1} />
                     </LinearGradient>
                   </Defs>
                   <Rect x="0" y="0" width="100%" height={HERO_H * SCRIM_TOP_CLEAR} fill="url(#placeTop)" />
@@ -190,15 +215,23 @@ export function PlaceDetailOverlay({
                 <Ionicons name="close" size={20} color={color.text} />
               </Pressable>
 
-              {/* Title sits in the bottom scrim, not on the bright band. */}
-              <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: screen.x }}>
+              {/* Title sits in the 0.76 band; the subtitle, being muted and
+                  small, sits on the opaque zone below it. Geometry from heroScrim. */}
+              <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: HERO_PAD }}>
                 <Text
                   className="font-display-medium text-text"
-                  style={{ fontSize: 26, lineHeight: 26 * 1.18, letterSpacing: 26 * -0.015 }}
+                  style={{
+                    fontSize: TITLE_SIZE,
+                    lineHeight: TITLE_LINE_HEIGHT,
+                    letterSpacing: TITLE_SIZE * -0.015
+                  }}
                 >
                   {activity.title}
                 </Text>
-                <Text className="font-display text-muted mt-1" style={{ fontSize: 12.5 }}>
+                <Text
+                  className="font-display text-muted"
+                  style={{ fontSize: SUBTITLE_SIZE, lineHeight: SUBTITLE_LINE_HEIGHT, marginTop: SUBTITLE_GAP }}
+                >
                   {activity.category} · {activity.priceLevel}
                 </Text>
               </View>
